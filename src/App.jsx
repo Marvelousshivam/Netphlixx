@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Routes, Route, useNavigate, useParams, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, useNavigate, useParams, Link, useLocation, useSearchParams } from 'react-router-dom';
 import { Search, Bell, User, Info, X, ChevronLeft, ChevronRight, ChevronDown, Plus, ThumbsUp, Home as HomeIcon, Star, Film, Tv, Radio, Gamepad2, Calendar, Clock, Download, Heart, Bookmark, Share2 } from 'lucide-react';
 import { FaPlay as Play, FaPause as Pause, FaExpand as Maximize, FaVolumeHigh as Volume2, FaVolumeXmark as VolumeX, FaClosedCaptioning as Subtitles, FaGear as Settings, FaRotateRight as RotateCw, FaRotateLeft as RotateCcw, FaArrowLeft as ArrowLeft, FaHeadphones as Headphones, FaCheck as Check } from 'react-icons/fa6';
 import { FastAverageColor } from 'fast-average-color';
@@ -146,7 +146,7 @@ function getMediaType(item) {
   return 'movie';
 }
 
-function Navbar({ onSearch, activeTab, setActiveTab, toggleMobileSearch, mobileSearchOpen }) {
+function Navbar({ onSearch, activeTab, setActiveTab, toggleMobileSearch, mobileSearchOpen, searchQuery: propSearchQuery }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
@@ -167,13 +167,23 @@ function Navbar({ onSearch, activeTab, setActiveTab, toggleMobileSearch, mobileS
     }
   };
 
+  const [searchParams] = useSearchParams();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(propSearchQuery !== undefined ? propSearchQuery : (searchParams.get('q') || ''));
   const [searchOpen, setSearchOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [accentColor, setAccentColor] = useLocalStorage('netphlix_accent', '#E50914');
   const searchInputRef = useRef(null);
   const navigate = useNavigate();
+
+  // Sync with prop or URL
+  useEffect(() => {
+    if (propSearchQuery !== undefined) {
+      setSearchQuery(propSearchQuery);
+    } else {
+      setSearchQuery(searchParams.get('q') || '');
+    }
+  }, [propSearchQuery, searchParams]);
 
   useEffect(() => {
     document.documentElement.style.setProperty('--accent-color', accentColor);
@@ -188,8 +198,15 @@ function Navbar({ onSearch, activeTab, setActiveTab, toggleMobileSearch, mobileS
   }, []);
 
   const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-    if (onSearch) onSearch(e.target.value);
+    const val = e.target.value;
+    setSearchQuery(val);
+    if (onSearch) {
+      onSearch(val);
+    } else {
+      if (val.trim()) {
+        navigate(`/?q=${encodeURIComponent(val)}`);
+      }
+    }
   };
 
   const toggleSearch = () => {
@@ -289,9 +306,14 @@ function Navbar({ onSearch, activeTab, setActiveTab, toggleMobileSearch, mobileS
                 autoFocus
                 placeholder="Search Netphlix..."
                 className="bg-transparent text-white w-full outline-none text-lg"
-                onChange={(e) => { if (onSearch) onSearch(e.target.value); }}
+                value={searchQuery}
+                onChange={handleSearchChange}
              />
-             <X className="w-6 h-6 text-gray-400 cursor-pointer hover:text-white" onClick={toggleMobileSearch} />
+             <X className="w-6 h-6 text-gray-400 cursor-pointer hover:text-white" onClick={() => {
+                setSearchQuery('');
+                if (onSearch) onSearch('');
+                toggleMobileSearch();
+             }} />
           </div>
         )}
       </nav>
@@ -393,6 +415,7 @@ function Hero({ movie, trending = [], onSelect }) {
   const [bgColor, setBgColor] = useState('rgba(20,20,20,1)');
   const [details, setDetails] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (!movie) return;
@@ -439,11 +462,11 @@ function Hero({ movie, trending = [], onSelect }) {
   const isTV = getMediaType(movie) === 'tv';
 
   const onPlay = () => {
-    navigate(`/watch/${isTV ? 'tv' : 'movie'}/${movie.id}`);
+    navigate(`/watch/${isTV ? 'tv' : 'movie'}/${movie.id}`, { state: { from: location.pathname + location.search } });
   };
 
   const onInfo = () => {
-    navigate(`/title/${isTV ? 'tv' : 'movie'}/${movie.id}`, { state: { movie } });
+    navigate(`/title/${isTV ? 'tv' : 'movie'}/${movie.id}`, { state: { movie, from: location.pathname + location.search } });
   };
 
   return (
@@ -699,6 +722,7 @@ function Row({ title, icon: Icon, fetchUrl, isLargeRow, isTop10, moviesArray, on
   const [isLoading, setIsLoading] = useState(true);
   const rowRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (moviesArray) {
@@ -741,9 +765,9 @@ function Row({ title, icon: Icon, fetchUrl, isLargeRow, isTop10, moviesArray, on
   const onNavigate = (movie, action) => {
     const mediaType = getMediaType(movie);
     if (action === 'play') {
-      navigate(`/watch/${mediaType}/${movie.id}`);
+      navigate(`/watch/${mediaType}/${movie.id}`, { state: { from: location.pathname + location.search } });
     } else {
-      navigate(`/title/${mediaType}/${movie.id}`, { state: { movie } });
+      navigate(`/title/${mediaType}/${movie.id}`, { state: { movie, from: location.pathname + location.search } });
     }
   };
 
@@ -855,6 +879,7 @@ function SearchResults({ query }) {
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (query.length < 2) return;
@@ -978,7 +1003,7 @@ function SearchResults({ query }) {
               transition={{ delay: i * 0.05 }}
               whileHover={{ scale: 1.1, zIndex: 50, transition: { type: "spring", stiffness: 300, damping: 20 } }}
               className="relative cursor-pointer rounded-lg overflow-hidden shadow-sm aspect-[2/3] group"
-              onClick={() => navigate(`/title/${getMediaType(movie)}/${movie.id}`, { state: { movie } })}
+              onClick={() => navigate(`/title/${getMediaType(movie)}/${movie.id}`, { state: { movie, from: location.pathname + location.search } })}
             >
               <img
                 src={`${IMAGE_BASE_URL_W500}${movie.poster_path || movie.backdrop_path}`}
@@ -1012,6 +1037,7 @@ function SearchResults({ query }) {
 function InlineBanner({ movie }) {
   if (!movie) return null;
   const navigate = useNavigate();
+  const location = useLocation();
   return (
     <div className="mx-4 md:mx-12 my-12 md:my-16 relative rounded-2xl overflow-hidden bg-shows-dark shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col md:flex-row h-auto md:h-[400px]">
       <div className="w-full md:w-1/2 relative h-64 md:h-full overflow-hidden">
@@ -1025,7 +1051,7 @@ function InlineBanner({ movie }) {
            <span>{movie.release_date?.substring(0,4) || movie.first_air_date?.substring(0,4)}</span>
          </div>
          <p className="text-gray-400 text-sm md:text-base line-clamp-3 mb-8 max-w-md">{movie.overview}</p>
-         <button onClick={() => navigate(`/title/${movie.title ? 'movie' : 'tv'}/${movie.id}`, { state: { movie } })} className="bg-netflix-red text-white px-8 py-3 rounded-full font-bold hover:bg-red-700 transition self-start shadow-lg shadow-red-500/30 flex items-center">
+         <button onClick={() => navigate(`/title/${movie.title ? 'movie' : 'tv'}/${movie.id}`, { state: { movie, from: location.pathname + location.search } })} className="bg-netflix-red text-white px-8 py-3 rounded-full font-bold hover:bg-red-700 transition self-start shadow-lg shadow-red-500/30 flex items-center">
             <Play className="w-4 h-4 mr-2" /> Play Now
          </button>
       </div>
@@ -1038,10 +1064,31 @@ function Dashboard() {
   const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'Home');
   const [featured, setFeatured] = useState(null);
   const [trending, setTrending] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(!!searchParams.get('q'));
   const [genres, setGenres] = useState([]);
   const [selectedGenre, setSelectedGenre] = useState('');
+
+  // Sync search state bidirectionally with URL for persistence across navigation
+  useEffect(() => {
+    const q = searchParams.get('q') || '';
+    if (q !== searchQuery) {
+      setSearchQuery(q);
+      if (q) setMobileSearchOpen(true);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const currentQ = searchParams.get('q') || '';
+    if (searchQuery && searchQuery !== currentQ) {
+      setSearchParams({ q: searchQuery }, { replace: true });
+    } else if (!searchQuery && currentQ) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('q');
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchQuery]);
   
   const [myList, setMyList] = useLocalStorage('netphlix_myList', []);
   const [watchHistory, setWatchHistory] = useLocalStorage('netphlix_watchHistory', []);
@@ -1091,6 +1138,7 @@ function Dashboard() {
       className="min-h-screen bg-[#141414] pb-20 md:pb-0 flex flex-col"
     >
       <Navbar 
+        searchQuery={searchQuery}
         onSearch={setSearchQuery} 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
@@ -1300,6 +1348,16 @@ function TitlePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [details, setDetails] = useState(location.state?.movie || null);
+
+  const handleBack = () => {
+    if (location.state?.from) {
+      navigate(location.state.from);
+    } else if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/');
+    }
+  };
   const [similar, setSimilar] = useState([]);
   const [selectedSeason, setSelectedSeason] = useState(1);
   const [episodes, setEpisodes] = useState([]);
@@ -1484,6 +1542,18 @@ function TitlePage() {
     >
       <Navbar activeTab="" setActiveTab={() => navigate('/')} />
       
+      {/* Top Floating Back Button */}
+      <div className="fixed top-20 left-4 md:left-8 z-40">
+        <button 
+          onClick={handleBack}
+          className="flex items-center space-x-2 bg-black/70 hover:bg-black text-white px-3.5 py-1.5 rounded-full text-xs md:text-sm font-semibold transition-all hover:scale-105 border border-white/20 backdrop-blur-md cursor-pointer shadow-2xl"
+          title="Go back"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back</span>
+        </button>
+      </div>
+
       {/* Background with Parallax */}
       <div className="absolute top-0 left-0 w-full h-[100vh] z-0 pointer-events-none overflow-hidden bg-[#0a0a0a]">
         <motion.img style={{ y: backgroundY }} src={`${IMAGE_BASE_URL}${details.backdrop_path}`} className="w-full h-[120%] -top-[10%] relative object-cover opacity-50 transition-opacity duration-500" alt="bg" />
@@ -1604,7 +1674,7 @@ function TitlePage() {
 
           <div className="flex flex-wrap gap-3 mb-12">
             {new Date(releaseDate) <= new Date() && (
-              <button onClick={() => navigate(`/watch/${type}/${id}`)} className="flex items-center bg-netflix-red hover:bg-red-700 text-white rounded-full px-8 py-2.5 text-sm font-bold shadow-lg shadow-red-500/30 transition-all hover:scale-105">
+              <button onClick={() => navigate(`/watch/${type}/${id}`, { state: { from: location.pathname + location.search } })} className="flex items-center bg-netflix-red hover:bg-red-700 text-white rounded-full px-8 py-2.5 text-sm font-bold shadow-lg shadow-red-500/30 transition-all hover:scale-105">
                 <Play className="w-5 h-5 mr-2 fill-current" />
                 Play Now
               </button>
@@ -1672,7 +1742,7 @@ function TitlePage() {
             </div>
 
             {trailer && (
-              <div className="mb-12 relative w-full max-w-2xl aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/10 group cursor-pointer mx-auto lg:mx-0" onClick={() => navigate(`/watch/${type}/${id}`)}>
+              <div className="mb-12 relative w-full max-w-2xl aspect-video rounded-2xl overflow-hidden shadow-2xl border border-white/10 group cursor-pointer mx-auto lg:mx-0" onClick={() => navigate(`/watch/${type}/${id}`, { state: { from: location.pathname + location.search } })}>
                 <img src={`${IMAGE_BASE_URL}${details.backdrop_path}`} className="w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
                 <div className="absolute inset-0 flex items-center justify-center">
                    <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 border border-white/30">
@@ -2359,6 +2429,21 @@ const CustomPlayer = ({ url, type = 'm3u8', title, onBack, externalCaptions = []
   );
 };
 
+const SERVERS = [
+  { id: 'Peachify', name: 'Peachify (Fast / Multi-server)', shortName: '⚡ Peachify', getUrl: (t, id, s, e) => t === 'tv' ? `https://peachify.pro/embed/tv/${id}/${s}/${e}?theme=netflix` : `https://peachify.pro/embed/movie/${id}?theme=netflix` },
+  { id: 'VidLink', name: 'VidLink (Recommended)', shortName: '🚀 VidLink', getUrl: (t, id, s, e) => t === 'tv' ? `https://vidlink.pro/tv/${id}/${s}/${e}` : `https://vidlink.pro/movie/${id}` },
+  { id: 'VidSrcSH', name: 'VidSrc Official (Primary)', shortName: '🎬 VidSrc SH', getUrl: (t, id, s, e) => t === 'tv' ? `https://vidsrc.sh/embed/tv/${id}/${s}/${e}` : `https://vidsrc.sh/embed/movie/${id}` },
+  { id: 'VidEasy', name: 'VidEasy (Fast HD)', shortName: '🌟 VidEasy', getUrl: (t, id, s, e) => t === 'tv' ? `https://player.videasy.to/tv/${id}/${s}/${e}` : `https://player.videasy.to/movie/${id}` },
+  { id: 'VidCore', name: 'VidCore (HLS Edge)', shortName: '⚡ VidCore', getUrl: (t, id, s, e) => t === 'tv' ? `https://www.vidcore.org/embed/tv/${id}/${s}/${e}` : `https://www.vidcore.org/embed/movie/${id}` },
+  { id: 'VidSrc2', name: 'VidSrc Mirror (Mirror 2)', shortName: '🔄 VidSrc 2', getUrl: (t, id, s, e) => t === 'tv' ? `https://vidsrc2.ru/embed/tv/${id}/${s}/${e}` : `https://vidsrc2.ru/embed/movie/${id}` },
+  { id: 'AutoEmbed', name: 'AutoEmbed (Multi-server)', shortName: '🌐 AutoEmbed', getUrl: (t, id, s, e) => t === 'tv' ? `https://autoembed.co/tv/tmdb/${id}-${s}-${e}` : `https://autoembed.co/movie/tmdb/${id}` },
+  { id: 'VidSrcPM', name: 'VidSrc PM (Multi-sub)', shortName: '💬 VidSrc PM', getUrl: (t, id, s, e) => t === 'tv' ? `https://vidsrc.pm/embed/tv/${id}/${s}/${e}` : `https://vidsrc.pm/embed/movie/${id}` },
+  { id: '2EmbedSkin', name: '2Embed (Mirror 1)', shortName: '📺 2Embed 1', getUrl: (t, id, s, e) => t === 'tv' ? `https://www.2embed.skin/embedtv/${id}&s=${s}&e=${e}` : `https://www.2embed.skin/embed/${id}` },
+  { id: '2EmbedCC', name: '2Embed (Mirror 2)', shortName: '📺 2Embed 2', getUrl: (t, id, s, e) => t === 'tv' ? `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}` : `https://www.2embed.cc/embed/${id}` },
+  { id: 'NontonGo', name: 'NontonGo (Asian / Global)', shortName: '🌏 NontonGo', getUrl: (t, id, s, e) => t === 'tv' ? `https://www.nontongo.win/embed/tv/${id}/${s}/${e}` : `https://www.nontongo.win/embed/movie/${id}` },
+  { id: 'VidSrcIR', name: 'VidSrc Backup (Mirror 3)', shortName: '🛡️ VidSrc IR', getUrl: (t, id, s, e) => t === 'tv' ? `https://vidsrc.ir/embed/tv/${id}/${s}/${e}` : `https://vidsrc.ir/embed/movie/${id}` },
+];
+
 function WatchPage() {
   const { type, id } = useParams();
   const location = useLocation();
@@ -2367,120 +2452,20 @@ function WatchPage() {
   const queryParams = new URLSearchParams(location.search);
   const season = queryParams.get('s') || 1;
   const episode = queryParams.get('e') || 1;
-  const SERVERS = ['VidAPI', 'RGShows', 'SmashyStream', 'VidLink', 'VidSrcRU', 'VSrcSU', 'SuperEmbed', '2Embed', 'Peachify'];
-  const [server, setServer] = useLocalStorage('netphlix_server', SERVERS[0]);
-  const [useAdfree, setUseAdfree] = useLocalStorage('netphlix_useAdfree', true);
-  const [useSandbox, setUseSandbox] = useLocalStorage('netphlix_useSandbox', true);
-  const [adfreeServer, setAdfreeServer] = useLocalStorage('netphlix_adfreeServer', 0); // Stores the index of the selected stream
-  const [availableStreams, setAvailableStreams] = useState([]);
+  const [selectedServerId, setSelectedServerId] = useLocalStorage('netphlix_selectedServer', SERVERS[0].id);
+  const [useSandbox, setUseSandbox] = useLocalStorage('netphlix_useSandbox', false);
 
   const [watchHistory, setWatchHistory] = useLocalStorage('netphlix_watchHistory', []);
   
   const [details, setDetails] = useState(null);
   const [episodesList, setEpisodesList] = useState([]);
   const [activeTab, setActiveTab] = useState('');
-  const [showEpisodes, setShowEpisodes] = useState(false);
-  const [nativeStreamUrl, setNativeStreamUrl] = useState(null);
-  const [nativeStreamType, setNativeStreamType] = useState('m3u8');
-  const [nativeCaptions, setNativeCaptions] = useState([]);
-  const [streamLoading, setStreamLoading] = useState(true);
+
+  const activeServer = SERVERS.find(s => s.id === selectedServerId) || SERVERS[0];
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [id, season, episode]);
-
-  // Fetch Stream from Backend
-  useEffect(() => {
-    const fetchStream = async () => {
-      try {
-        setStreamLoading(true);
-        const url = `https://movie-scraper-gilt.vercel.app/api?tmdb=${id}${type === 'tv' ? `&s=${season}&e=${episode}` : ''}`;
-        
-        let allStreams = [];
-        let allCaptions = [];
-
-        try {
-          const res = await fetch(url);
-          const data = await res.json();
-          if (data.success && data.streams) {
-            allStreams = [...data.streams];
-            allCaptions = data.captions || [];
-          }
-        } catch(err) {
-          console.error("Error fetching primary stream API:", err);
-        }
-
-        // Fetch Backup API
-        const backupUrl = `https://movie-scraper-brown.vercel.app/api/stream?tmdbId=${id}&type=${type}${type === 'tv' ? `&season=${season}&episode=${episode}` : ''}`;
-        try {
-          const backupRes = await fetch(backupUrl);
-          const backupData = await backupRes.json();
-          if (backupData.success && backupData.streamUrl) {
-            allStreams.push({ name: "VidLink (Backup API)", url: backupData.streamUrl });
-            // Only use backup captions if primary failed
-            if (allCaptions.length === 0 && backupData.captions) {
-              allCaptions = backupData.captions;
-            }
-          }
-        } catch(err) {
-          console.error("Error fetching backup stream API:", err);
-        }
-
-        // Fetch CinePro API (Render deployment)
-        const cineproUrl = type === 'tv' 
-          ? `https://core-4z5l.onrender.com/v1/tv/${id}/seasons/${season}/episodes/${episode}`
-          : `https://core-4z5l.onrender.com/v1/movies/${id}`;
-        try {
-          const cineproRes = await fetch(cineproUrl);
-          const cineproData = await cineproRes.json();
-          if (cineproData && cineproData.sources && cineproData.sources.length > 0) {
-            cineproData.sources.forEach(source => {
-              if (source.url) {
-                 const providerName = source.provider?.name || source.name || 'Stream';
-                 allStreams.push({ 
-                    name: `CinePro - ${providerName} (${source.quality || 'Auto'})`, 
-                    url: source.url,
-                    type: source.type || 'mp4' 
-                 });
-              }
-            });
-          }
-        } catch(err) {
-          console.error("Error fetching CinePro API:", err);
-        }
-
-        if (allStreams.length > 0) {
-            setAvailableStreams(allStreams);
-            // Default to the first stream if adfreeServer index is out of bounds
-            const streamIndex = (adfreeServer < allStreams.length) ? adfreeServer : 0;
-            if (streamIndex !== adfreeServer) setAdfreeServer(streamIndex);
-            
-            setNativeStreamUrl(allStreams[streamIndex].url);
-            setNativeStreamType(allStreams[streamIndex].type || 'm3u8');
-            setNativeCaptions(allCaptions);
-        } else {
-            console.error("No stream URLs returned from any API.");
-            setAvailableStreams([]);
-        }
-      } catch(err) {
-         console.error("Unexpected error in fetchStream:", err);
-      } finally {
-         setStreamLoading(false);
-      }
-    };
-    
-    if (useAdfree) {
-       fetchStream();
-    }
-  }, [type, id, season, episode, useAdfree]);
-
-  // Handle stream source switching instantly
-  useEffect(() => {
-      if (availableStreams.length > 0 && adfreeServer < availableStreams.length) {
-          setNativeStreamUrl(availableStreams[adfreeServer].url);
-          setNativeStreamType(availableStreams[adfreeServer].type || 'm3u8');
-      }
-  }, [adfreeServer, availableStreams]);
 
   // Fetch Details & Save to watch history
   useEffect(() => {
@@ -2527,6 +2512,58 @@ function WatchPage() {
     }
   }, [id, type, season]);
 
+  // Listen to postMessage from embeds (e.g. Peachify, Videasy) to track watch progress
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data) {
+        try {
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+          const currentTime = data.currentTime || data.progress || data.peachifyProgress?.currentTime;
+          const duration = data.duration || data.peachifyProgress?.duration;
+          if (currentTime && duration) {
+            setWatchHistory(prev => prev.map(item => {
+              if (item.id === parseInt(id)) {
+                return { 
+                  ...item, 
+                  currentTime: Math.round(currentTime), 
+                  duration: Math.round(duration), 
+                  progressPercent: Math.min(100, Math.round((currentTime / duration) * 100)) 
+                };
+              }
+              return item;
+            }));
+          }
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [id, setWatchHistory]);
+
+  const handleNextEpisode = () => {
+    const currentEpNum = parseInt(episode);
+    const nextEp = episodesList.find(ep => ep.episode_number === currentEpNum + 1);
+    if (nextEp) {
+      navigate(`/watch/tv/${id}?s=${season}&e=${currentEpNum + 1}`, { state: location.state });
+    } else if (details?.seasons) {
+      const currentSeasonNum = parseInt(season);
+      const nextSeason = details.seasons.find(s => s.season_number === currentSeasonNum + 1);
+      if (nextSeason) {
+        navigate(`/watch/tv/${id}?s=${currentSeasonNum + 1}&e=1`, { state: location.state });
+      }
+    }
+  };
+
+  const handlePrevEpisode = () => {
+    const currentEpNum = parseInt(episode);
+    if (currentEpNum > 1) {
+      navigate(`/watch/tv/${id}?s=${season}&e=${currentEpNum - 1}`, { state: location.state });
+    } else if (parseInt(season) > 1 && details?.seasons) {
+      const prevSeasonNum = parseInt(season) - 1;
+      navigate(`/watch/tv/${id}?s=${prevSeasonNum}&e=1`, { state: location.state });
+    }
+  };
+
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -2543,65 +2580,35 @@ function WatchPage() {
       }
       
       if (key === 's') {
-        setServer(prev => {
-          const currentIndex = SERVERS.indexOf(prev);
-          // Only cycle through known array, default to first if not found
-          if (currentIndex === -1) return SERVERS[0];
-          return SERVERS[(currentIndex + 1) % SERVERS.length];
-        });
+        const currentIndex = SERVERS.findIndex(s => s.id === activeServer.id);
+        const nextServer = SERVERS[(currentIndex + 1) % SERVERS.length];
+        setSelectedServerId(nextServer.id);
       }
       
       if (key === 'n' && type === 'tv') {
-        const currentEpNum = parseInt(episode);
-        const nextEp = episodesList.find(ep => ep.episode_number === currentEpNum + 1);
-        if (nextEp) {
-          navigate(`/watch/tv/${id}?s=${season}&e=${currentEpNum + 1}`);
-        } else if (details?.seasons) {
-           // Try next season
-           const currentSeasonNum = parseInt(season);
-           const nextSeason = details.seasons.find(s => s.season_number === currentSeasonNum + 1);
-           if (nextSeason) {
-             navigate(`/watch/tv/${id}?s=${currentSeasonNum + 1}&e=1`);
-           }
-        }
+        handleNextEpisode();
+      }
+
+      if (key === 'p' && type === 'tv') {
+        handlePrevEpisode();
+      }
+
+      if (key === 'b') {
+        handleBack();
       }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [type, id, season, episode, episodesList, details, navigate]);
+  }, [type, id, season, episode, episodesList, details, navigate, activeServer]);
 
   const handleBack = () => {
-    navigate('/');
-  };
-
-  const getIframeSrc = () => {
-    if (type === 'tv') {
-      switch(server) {
-        case 'VidAPI': return `https://vaplayer.ru/embed/tv/${id}/${season}/${episode}?autoplay=1`;
-        case 'VidLink': return `https://vidlink.pro/tv/${id}/${season}/${episode}`;
-        case 'RGShows': return `https://rgshows.me/player/tv/api1/index.html?id=${id}&s=${season}&e=${episode}`;
-        case 'SmashyStream': return `https://embed.smashystream.com/playere.php?tmdb=${id}&season=${season}&ep=${episode}`;
-        case 'VidSrcRU': return `https://vidsrc.ru/tv/${id}/${season}/${episode}`;
-        case 'VSrcSU': return `https://vsrc.su/embed/tv?tmdb=${id}&season=${season}&episode=${episode}`;
-        case 'SuperEmbed': return `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${season}&e=${episode}`;
-        case '2Embed': return `https://www.2embed.cc/embedtv/${id}&s=${season}&e=${episode}`;
-        case 'Peachify': return `https://peachify.top/embed/tv/${id}/${season}/${episode}`;
-        default: return `https://vaplayer.ru/embed/tv/${id}/${season}/${episode}?autoplay=1`;
-      }
+    if (location.state?.from) {
+      navigate(location.state.from);
+    } else if (window.history.length > 2) {
+      navigate(-1);
     } else {
-      switch(server) {
-        case 'VidAPI': return `https://vaplayer.ru/embed/movie/${id}?autoplay=1`;
-        case 'VidLink': return `https://vidlink.pro/movie/${id}`;
-        case 'RGShows': return `https://rgshows.me/player/movies/api1/index.html?id=${id}`;
-        case 'SmashyStream': return `https://embed.smashystream.com/playere.php?tmdb=${id}`;
-        case 'VidSrcRU': return `https://vidsrc.ru/movie/${id}`;
-        case 'VSrcSU': return `https://vsrc.su/embed/movie?tmdb=${id}`;
-        case 'SuperEmbed': return `https://multiembed.mov/?video_id=${id}&tmdb=1`;
-        case '2Embed': return `https://www.2embed.cc/embed/${id}`;
-        case 'Peachify': return `https://peachify.top/embed/movie/${id}`;
-        default: return `https://vaplayer.ru/embed/movie/${id}?autoplay=1`;
-      }
+      navigate(`/title/${type}/${id}`);
     }
   };
 
@@ -2622,40 +2629,34 @@ function WatchPage() {
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
       
       {/* Full-width Player Section */}
-      <div className="pt-16 md:pt-24 w-full bg-black relative">
+      <div className="pt-20 md:pt-24 w-full bg-black relative">
+        <div className="max-w-[1800px] mx-auto px-4 pb-3 flex items-center justify-between">
+          <button 
+            onClick={handleBack}
+            className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 text-white px-3.5 py-1.5 rounded-full text-xs md:text-sm font-semibold transition-all hover:scale-105 border border-white/10 backdrop-blur-md cursor-pointer shadow-md"
+            title="Go back to previous page"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back</span>
+          </button>
+          <div className="flex items-center space-x-3 text-xs text-gray-400">
+            <span className="hidden sm:inline">Press <kbd className="bg-white/10 px-1.5 py-0.5 rounded text-white font-mono text-[10px]">S</kbd> to cycle server</span>
+            <span className="hidden sm:inline">•</span>
+            <span className="text-[var(--accent-color)] font-semibold">{activeServer.name}</span>
+          </div>
+        </div>
+
         <div className="max-w-[1800px] mx-auto relative group">
           <div id="video-player-container" className="relative w-full aspect-video bg-black md:rounded-xl overflow-hidden md:shadow-[0_0_60px_rgba(0,0,0,0.8)] md:border border-gray-800 transition-all duration-500">
-          
-            {useAdfree && streamLoading ? (
-               <div className="w-full h-full flex flex-col items-center justify-center bg-[#0a0a0a]">
-                  <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[var(--accent-color)] shadow-[0_0_20px_rgba(229,9,20,0.5)]"></div>
-                  <p className="mt-4 text-gray-400 font-bold tracking-widest uppercase text-sm animate-pulse">Loading Stream...</p>
-               </div>
-            ) : useAdfree && nativeStreamUrl ? (
-               <CustomPlayer 
-                  url={nativeStreamUrl} 
-                  type={nativeStreamType}
-                  title={`${details?.title || details?.name || 'Video'} ${type === 'tv' ? `(S${season} E${episode})` : ''}`}
-                  onBack={() => navigate(-1)}
-                  externalCaptions={nativeCaptions}
-                  onProgress={(progress) => {
-                     setWatchHistory(prev => prev.map(m => m.id === parseInt(id) ? { ...m, progress } : m));
-                  }}
-               />
-            ) : useAdfree ? (
-               <div className="w-full h-full flex flex-col items-center justify-center bg-[#0a0a0a]">
-                  <p className="text-gray-400 font-medium">Stream not available right now. Try switching servers.</p>
-               </div>
-            ) : (
-              <iframe
-                key={`${server}-${season}-${episode}-${useSandbox}`}
-                src={getIframeSrc()}
-                className="w-full h-full border-none"
-                frameBorder="0"
-                allowFullScreen
-                {...(useSandbox ? { sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation" } : {})}
-              ></iframe>
-            )}
+            <iframe
+              key={`${activeServer.id}-${type}-${id}-${season}-${episode}-${useSandbox}`}
+              src={activeServer.getUrl(type, id, season, episode)}
+              className="w-full h-full border-none"
+              frameBorder="0"
+              allowFullScreen
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              {...(useSandbox ? { sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation" } : {})}
+            ></iframe>
           </div>
         </div>
       </div>
@@ -2674,88 +2675,81 @@ function WatchPage() {
          </div>
          
          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            {type === 'tv' && episodesList.length > 0 && (
-              <button 
-                onClick={() => {
-                   const currentEpNum = parseInt(episode);
-                   const nextEp = episodesList.find(ep => ep.episode_number === currentEpNum + 1);
-                   if (nextEp) {
-                     navigate(`/watch/tv/${id}?s=${season}&e=${currentEpNum + 1}`);
-                   } else if (details?.seasons) {
-                      const currentSeasonNum = parseInt(season);
-                      const nextSeason = details.seasons.find(s => s.season_number === currentSeasonNum + 1);
-                      if (nextSeason) {
-                        navigate(`/watch/tv/${id}?s=${currentSeasonNum + 1}&e=1`);
-                      }
-                   }
-                }}
-                className="bg-white text-black px-4 md:px-6 py-2 md:py-2.5 rounded-lg flex items-center space-x-2 transition-all hover:bg-gray-200 font-bold shadow-lg flex-1 md:flex-none justify-center"
-              >
-                <span>Next Episode</span>
-                <Play className="w-4 h-4 fill-black" />
-              </button>
+            {type === 'tv' && (
+              <div className="flex items-center gap-2">
+                {parseInt(episode) > 1 && (
+                  <button 
+                    onClick={handlePrevEpisode}
+                    className="bg-white/10 hover:bg-white/20 text-white px-3 md:px-4 py-2 md:py-2.5 rounded-lg flex items-center space-x-1.5 transition-all font-semibold border border-white/10 text-sm"
+                    title="Previous Episode (P)"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span className="hidden sm:inline">Prev</span>
+                  </button>
+                )}
+                {episodesList.length > 0 && (
+                  <button 
+                    onClick={handleNextEpisode}
+                    className="bg-white text-black px-4 md:px-6 py-2 md:py-2.5 rounded-lg flex items-center space-x-2 transition-all hover:bg-gray-200 font-bold shadow-lg text-sm"
+                    title="Next Episode (N)"
+                  >
+                    <span>Next Episode</span>
+                    <Play className="w-4 h-4 fill-black" />
+                  </button>
+                )}
+              </div>
             )}
             
             <div className="flex items-center space-x-2 w-full md:w-auto">
+              <div className="flex items-center bg-[#1a1a1a] px-3 py-2 md:py-2.5 rounded-lg border border-gray-700 hover:border-gray-500 transition shadow-lg w-full md:w-auto">
+                <span className="text-[var(--accent-color)] text-xs font-semibold mr-2 hidden sm:block">SERVER:</span>
+                <select 
+                  value={activeServer.id} 
+                  onChange={(e) => setSelectedServerId(e.target.value)}
+                  className="bg-transparent text-white font-bold outline-none text-sm cursor-pointer w-full"
+                >
+                  {SERVERS.map((s) => (
+                    <option key={s.id} value={s.id} className="bg-gray-900 text-white">
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <button 
-                onClick={() => setUseAdfree(!useAdfree)}
-                className={`flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-2 md:py-2.5 rounded-lg border transition-all shadow-lg text-sm font-bold ${
-                  useAdfree 
-                  ? 'bg-[var(--accent-color)] border-[var(--accent-color)] text-white shadow-[0_0_15px_rgba(229,9,20,0.4)]' 
+                onClick={() => setUseSandbox(!useSandbox)}
+                className={`flex-1 md:flex-none flex items-center justify-center space-x-2 px-3 py-2 md:py-2.5 rounded-lg border transition-all shadow-lg text-sm font-bold ${
+                  useSandbox 
+                  ? 'bg-blue-600 border-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]' 
                   : 'bg-black/70 border-gray-600 text-gray-300 hover:text-white hover:border-gray-400'
                 }`}
+                title="Toggles Anti-Popup Sandbox Shield. When ON, popups are blocked. If a player fails to load, turn OFF."
               >
-                <Star className={`w-4 h-4 ${useAdfree ? 'fill-white' : ''}`} />
-                <span>{useAdfree ? 'Adfree ON' : 'Adfree Player'}</span>
+                <span>{useSandbox ? '🛡️ Shield ON' : '🛡️ Shield OFF'}</span>
               </button>
-
-              {useAdfree && availableStreams.length > 0 && (
-                <div className="flex items-center bg-[#1a1a1a] px-3 py-2 md:py-2.5 rounded-lg border border-gray-700 hover:border-gray-500 transition shadow-lg w-full md:w-auto">
-                  <span className="text-[var(--accent-color)] text-xs font-semibold mr-2 hidden sm:block">SOURCE:</span>
-                  <select 
-                    value={adfreeServer} 
-                    onChange={(e) => setAdfreeServer(parseInt(e.target.value))}
-                    className="bg-transparent text-white font-bold outline-none text-sm cursor-pointer w-full"
-                  >
-                    {availableStreams.map((stream, idx) => (
-                        <option key={idx} value={idx} className="bg-gray-900 text-white">
-                            {stream.name}
-                        </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {!useAdfree && (
-                <>
-                  <div className="flex items-center bg-[#1a1a1a] px-3 py-2 md:py-2.5 rounded-lg border border-gray-700 hover:border-gray-500 transition shadow-lg w-full md:w-auto">
-                    <span className="text-gray-400 text-xs font-semibold mr-2 hidden sm:block">SERVER:</span>
-                    <select 
-                      value={server} 
-                      onChange={(e) => setServer(e.target.value)}
-                      className="bg-transparent text-white font-bold outline-none text-sm cursor-pointer w-full"
-                    >
-                      {SERVERS.map(s => (
-                        <option key={s} value={s} className="bg-gray-900 text-white">{s}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <button 
-                    onClick={() => setUseSandbox(!useSandbox)}
-                    className={`flex-1 md:flex-none flex items-center justify-center space-x-2 px-3 py-2 md:py-2.5 rounded-lg border transition-all shadow-lg text-sm font-bold ${
-                      useSandbox 
-                      ? 'bg-blue-600 border-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]' 
-                      : 'bg-black/70 border-gray-600 text-gray-300 hover:text-white hover:border-gray-400'
-                    }`}
-                    title="Toggles Sandbox mode. When ON, popups are blocked but some streams might fail."
-                  >
-                    <span>{useSandbox ? 'Sandbox ON' : 'Sandbox OFF'}</span>
-                  </button>
-                </>
-              )}
             </div>
          </div>
+      </div>
+
+      {/* Quick Server Switcher Pills */}
+      <div className="max-w-[1800px] mx-auto px-4 py-2.5 flex items-center gap-2 overflow-x-auto scrollbar-hide border-b border-white/5">
+        <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider flex-none flex items-center gap-1.5 mr-1">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+          Quick Servers:
+        </span>
+        {SERVERS.slice(0, 7).map((s) => (
+          <button
+            key={s.id}
+            onClick={() => setSelectedServerId(s.id)}
+            className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex-none flex items-center space-x-1 border ${
+              activeServer.id === s.id
+                ? 'bg-[var(--accent-color)] border-[var(--accent-color)] text-white shadow-md scale-105'
+                : 'bg-[#1b1b1b] border-gray-700 text-gray-300 hover:text-white hover:border-gray-500'
+            }`}
+          >
+            <span>{s.shortName || s.name}</span>
+          </button>
+        ))}
       </div>
 
       {/* Details Section */}
@@ -2841,6 +2835,39 @@ function WatchPage() {
            </div>
          )}
       </div>
+
+      {/* More Like This (Similar Titles) Section */}
+      {details.similar?.results?.length > 0 && (
+        <div className="relative z-20 max-w-[1800px] mx-auto px-4 md:px-8 pb-16">
+           <h3 className="text-xl md:text-2xl font-bold text-white mb-6 flex items-center">
+             <span className="w-1.5 h-6 bg-[var(--accent-color)] rounded-full mr-3 inline-block"></span>
+             More Like This
+           </h3>
+           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
+             {details.similar.results.slice(0, 12).filter(m => m.poster_path || m.backdrop_path).map((item) => (
+               <div 
+                 key={item.id}
+                 onClick={() => navigate(`/watch/${item.media_type || type}/${item.id}`, { state: { from: location.pathname + location.search } })}
+                 className="group cursor-pointer rounded-lg overflow-hidden bg-[#1a1a1a] border border-white/5 hover:border-[var(--accent-color)] transition-all duration-300 hover:scale-105 shadow-lg relative aspect-[2/3]"
+               >
+                 <img 
+                   src={`${IMAGE_BASE_URL_W500}${item.poster_path || item.backdrop_path}`} 
+                   alt={item.title || item.name}
+                   className="w-full h-full object-cover group-hover:opacity-80 transition duration-300"
+                 />
+                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-3">
+                   <Play className="w-8 h-8 text-white fill-white self-center mb-auto mt-auto drop-shadow-lg" />
+                   <p className="text-white font-bold text-xs line-clamp-1">{item.title || item.name}</p>
+                   <div className="flex items-center justify-between text-[11px] text-gray-300 mt-1">
+                     <span className="text-green-400 font-semibold">{item.vote_average ? `${item.vote_average.toFixed(1)} ★` : ''}</span>
+                     <span>{(item.release_date || item.first_air_date)?.substring(0, 4)}</span>
+                   </div>
+                 </div>
+               </div>
+             ))}
+           </div>
+        </div>
+      )}
       </div>
       <Footer />
     </motion.div>
@@ -2851,6 +2878,7 @@ function ProfilePage() {
   const [myList, setMyList] = useLocalStorage('netphlix_myList', []);
   const [likedMovies, setLikedMovies] = useLocalStorage('netphlix_liked', []);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const removeFromList = (id) => {
     setMyList(prev => prev.filter(m => m.id !== id));
@@ -2889,8 +2917,8 @@ function ProfilePage() {
                     <div key={movie.id} className="w-full flex justify-center">
                       <RowCard movie={movie} isLargeRow={true} isTop10={false} onNavigate={(m, action) => {
                         const mediaType = m.name ? 'tv' : 'movie';
-                        if (action === 'play') navigate(`/watch/${mediaType}/${m.id}`);
-                        else navigate(`/title/${mediaType}/${m.id}`, { state: { movie: m } });
+                        if (action === 'play') navigate(`/watch/${mediaType}/${m.id}`, { state: { from: location.pathname + location.search } });
+                        else navigate(`/title/${mediaType}/${m.id}`, { state: { movie: m, from: location.pathname + location.search } });
                       }} onRemove={() => removeFromList(movie.id)} />
                     </div>
                  ))}
@@ -2914,8 +2942,8 @@ function ProfilePage() {
                     <div key={movie.id} className="w-full flex justify-center">
                       <RowCard movie={movie} isLargeRow={true} isTop10={false} onNavigate={(m, action) => {
                         const mediaType = m.name ? 'tv' : 'movie';
-                        if (action === 'play') navigate(`/watch/${mediaType}/${m.id}`);
-                        else navigate(`/title/${mediaType}/${m.id}`, { state: { movie: m } });
+                        if (action === 'play') navigate(`/watch/${mediaType}/${m.id}`, { state: { from: location.pathname + location.search } });
+                        else navigate(`/title/${mediaType}/${m.id}`, { state: { movie: m, from: location.pathname + location.search } });
                       }} onRemove={() => removeFromLiked(movie.id)} />
                     </div>
                  ))}
@@ -3008,8 +3036,8 @@ function CategoryPage() {
            <div key={movie.id} className="w-full flex justify-center">
              <RowCard movie={movie} isLargeRow={true} isTop10={false} onNavigate={(m, action) => {
                const mediaType = m.name ? 'tv' : 'movie';
-               if (action === 'play') navigate(`/watch/${mediaType}/${m.id}`);
-               else navigate(`/title/${mediaType}/${m.id}`, { state: { movie: m } });
+               if (action === 'play') navigate(`/watch/${mediaType}/${m.id}`, { state: { from: location.pathname + location.search } });
+               else navigate(`/title/${mediaType}/${m.id}`, { state: { movie: m, from: location.pathname + location.search } });
              }} />
            </div>
         ))}
