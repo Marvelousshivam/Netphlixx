@@ -43,7 +43,7 @@ export default function MovieRoulette({ isOpen, onClose }) {
     const moodObj = MOODS.find(m => m.id === selectedMood) || MOODS[0];
     const randomPage = Math.floor(Math.random() * 5) + 1;
 
-    let url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&page=${randomPage}&sort_by=popularity.desc`;
+    let url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&include_adult=false&page=${randomPage}&sort_by=popularity.desc`;
     if (moodObj.genre) {
       url += `&with_genres=${moodObj.genre}`;
     }
@@ -53,7 +53,7 @@ export default function MovieRoulette({ isOpen, onClose }) {
 
     try {
       const res = await fetch(url).then(r => r.json());
-      const candidates = (res.results || []).filter(m => m.poster_path && m.backdrop_path && m.overview);
+      const candidates = (res.results || []).filter(m => !m.adult && m.poster_path && m.backdrop_path && m.overview);
 
       if (candidates.length > 0) {
         let ticks = 0;

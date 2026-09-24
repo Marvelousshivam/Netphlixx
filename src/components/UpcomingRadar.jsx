@@ -20,11 +20,11 @@ export default function UpcomingRadar() {
       try {
         const today = new Date().toISOString().split('T')[0];
         const res = await fetch(
-          `${BASE_URL}/discover/movie?api_key=${API_KEY}&primary_release_date.gte=${today}&sort_by=popularity.desc&page=1`
+          `${BASE_URL}/discover/movie?api_key=${API_KEY}&include_adult=false&primary_release_date.gte=${today}&sort_by=popularity.desc&page=1`
         ).then(r => r.json());
 
         if (res.results) {
-          const valid = res.results.filter(m => m.poster_path && m.release_date);
+          const valid = res.results.filter(m => !m.adult && m.poster_path && m.release_date);
           setUpcomingMovies(valid.slice(0, 16));
         }
       } catch (err) {

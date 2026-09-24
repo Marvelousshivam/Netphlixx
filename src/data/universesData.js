@@ -10,7 +10,7 @@ export const UNIVERSES = [
     badge: 'Marvel Studios',
     color: '#E62429',
     gradient: 'from-[#E62429] to-[#800000]',
-    banner: 'https://image.tmdb.org/t/p/original/mDfJG3LC3Dqb67AZ52x3Z0jQ0uB.jpg', // Avengers Endgame backdrop
+    banner: 'https://image.tmdb.org/t/p/original/7RyHsO4yDXtBv1zUU3mTpHeQ0d5.jpg', // Avengers Endgame backdrop
     description: "Follow Earth's mightiest heroes from Tony Stark's first armor to the epic clashes of the Multiverse and Secret Wars.",
     phases: [
       { id: 'all', name: 'All Phases' },
@@ -133,7 +133,7 @@ export const UNIVERSES = [
     badge: 'DC Studios',
     color: '#0066FF',
     gradient: 'from-[#003882] via-[#0066FF] to-[#0A1128]',
-    banner: 'https://image.tmdb.org/t/p/original/tRS6jvPM9qPrrnx2KRx3ew96Yot.jpg', // The Batman backdrop
+    banner: 'https://image.tmdb.org/t/p/original/9FE5eD92WfVCiivM9Pq9GVSrlWk.jpg', // The Dark Knight backdrop
     description: "From Christopher Nolan's legendary Dark Knight trilogy to Snyder's Justice League and James Gunn's new DC Studios.",
     phases: [
       { id: 'all', name: 'All Sagas' },
@@ -176,7 +176,7 @@ export const UNIVERSES = [
     badge: 'Lucasfilm',
     color: '#FFE81F',
     gradient: 'from-[#FFE81F]/80 via-[#1A1A1A] to-[#000000]',
-    banner: 'https://image.tmdb.org/t/p/original/5Iw7zQWebNROBOAgrpSCiY9rq6d.jpg',
+    banner: 'https://image.tmdb.org/t/p/original/zqkmTXzjkAgXmEWLRsY4UpTWCeo.jpg',
     description: 'The complete Skywalker Saga from the fall of the Republic to the rise of the Resistance.',
     phases: [
       { id: 'all', name: 'All Trilogies' },
@@ -203,8 +203,7 @@ export const UNIVERSES = [
       // Sequels
       { id: 140607, title: 'Episode VII: The Force Awakens', year: 2015, chronoOrder: 9, releaseOrder: 7, phase: 'sequels' },
       { id: 181808, title: 'Episode VIII: The Last Jedi', year: 2017, chronoOrder: 10, releaseOrder: 9, phase: 'sequels' },
-      { id: 181812, title: 'Episode IX: The Rise of Skywalker', year: 2019, chronoOrder: 11, releaseOrder: 11, phase: 'sequels' },
-      { id: 1229983, title: 'The Mandalorian & Grogu', year: 2026, chronoOrder: 12, releaseOrder: 12, phase: 'sequels', upcoming: true, releaseDate: '2026-05-22' }
+      { id: 181812, title: 'Episode IX: The Rise of Skywalker', year: 2019, chronoOrder: 11, releaseOrder: 11, phase: 'sequels' }
     ]
   },
 
@@ -216,7 +215,7 @@ export const UNIVERSES = [
     badge: 'Wizarding World',
     color: '#D4AF37',
     gradient: 'from-[#740001] via-[#D4AF37] to-[#1A1A1A]',
-    banner: 'https://image.tmdb.org/t/p/original/5rrGVmRUmiNZiFr261sqRvKiUmv.jpg',
+    banner: 'https://image.tmdb.org/t/p/original/lvOLivVeX3DVVcwfVkxKf0R22D8.jpg',
     description: 'Experience Hogwarts, the Horcrux hunt, and Newt Scamander\'s magical creatures.',
     phases: [
       { id: 'all', name: 'All Movies' },
@@ -247,7 +246,7 @@ export const UNIVERSES = [
     badge: 'Legendary Pictures',
     color: '#FF4500',
     gradient: 'from-[#FF4500] via-[#8B0000] to-[#121212]',
-    banner: 'https://image.tmdb.org/t/p/original/qrGtVF3YZvsvA0VfR1bU0sBwHqm.jpg',
+    banner: 'https://image.tmdb.org/t/p/original/wWqTMWkEw6HouLd1zPZbZWxtAPr.jpg',
     description: 'Titan apex predators battle for Earth\'s supremacy: Godzilla, Kong, and ancient Hollow Earth mysteries.',
     phases: [
       { id: 'all', name: 'All Titan Battles' },

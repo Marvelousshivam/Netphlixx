@@ -65,6 +65,7 @@ export default function FranchiseTimeline({
               const res = await fetch(`${BASE_URL}/movie/${item.id}?api_key=${API_KEY}`);
               if (res.ok) {
                 const data = await res.json();
+                if (data.adult) return null;
                 const movieMeta = {
                   poster_path: data.poster_path,
                   backdrop_path: data.backdrop_path,
@@ -82,7 +83,7 @@ export default function FranchiseTimeline({
         );
 
         if (!isCancelled) {
-          setMovieDetailsList(enriched);
+          setMovieDetailsList(enriched.filter(Boolean));
           setLoading(false);
         }
       } else if (collectionData?.parts && collectionData.parts.length > 0) {
