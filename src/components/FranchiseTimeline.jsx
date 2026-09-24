@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Play, Check, ChevronRight, ChevronLeft, Calendar, Star, Compass, Clock, Sparkles } from 'lucide-react';
 import { findUniverseByMovieId, findUniverseByName } from '../data/universesData';
 
@@ -8,7 +8,6 @@ const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
 const BASE_URL = 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL_W500 = 'https://image.tmdb.org/t/p/w500';
 
-// In-memory cache for movie poster/details to minimize network requests
 const detailsCache = new Map();
 
 export default function FranchiseTimeline({
@@ -27,8 +26,7 @@ export default function FranchiseTimeline({
   const [movieDetailsList, setMovieDetailsList] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Read watch history from localStorage for watched indicators
-  const [watchedIds, setWatchedIds] = useState(() => {
+  const [watchedIds] = useState(() => {
     try {
       const history = JSON.parse(localStorage.getItem('netphlix_watchHistory') || '[]');
       return new Set(history.map(m => m.id));
@@ -39,7 +37,6 @@ export default function FranchiseTimeline({
 
   const numericCurrentId = parseInt(currentMovieId, 10);
 
-  // 1. Identify if movie belongs to curated universe or TMDB collection
   useEffect(() => {
     let matched = findUniverseByMovieId(numericCurrentId);
     if (!matched && collectionData?.name) {
@@ -51,7 +48,6 @@ export default function FranchiseTimeline({
     setUniverse(matched);
   }, [numericCurrentId, collectionData, movieTitle]);
 
-  // 2. Fetch and enrich movies
   useEffect(() => {
     let isCancelled = false;
 
@@ -59,10 +55,7 @@ export default function FranchiseTimeline({
       setLoading(true);
 
       if (universe) {
-        // Use curated universe movies
         const rawList = [...universe.movies];
-        
-        // Fetch missing posters/metadata in parallel with cache
         const enriched = await Promise.all(
           rawList.map(async (item) => {
             if (detailsCache.has(item.id)) {
@@ -83,9 +76,7 @@ export default function FranchiseTimeline({
                 detailsCache.set(item.id, movieMeta);
                 return { ...item, ...movieMeta };
               }
-            } catch (err) {
-              // fallback gracefully
-            }
+            } catch (err) {}
             return item;
           })
         );
@@ -95,7 +86,6 @@ export default function FranchiseTimeline({
           setLoading(false);
         }
       } else if (collectionData?.parts && collectionData.parts.length > 0) {
-        // Use TMDB collection parts
         const mapped = collectionData.parts.map((part, idx) => ({
           id: part.id,
           title: part.title,
@@ -125,7 +115,6 @@ export default function FranchiseTimeline({
     return () => { isCancelled = true; };
   }, [universe, collectionData]);
 
-  // Center the current card into view once loaded
   useEffect(() => {
     if (!loading && currentCardRef.current && scrollRef.current) {
       setTimeout(() => {
@@ -138,7 +127,6 @@ export default function FranchiseTimeline({
     }
   }, [loading, orderMode, activePhase]);
 
-  // Sort and filter movies
   const sortedMovies = [...movieDetailsList].sort((a, b) => {
     if (orderMode === 'chrono') {
       return (a.chronoOrder || 999) - (b.chronoOrder || 999);
@@ -152,7 +140,6 @@ export default function FranchiseTimeline({
     ? sortedMovies 
     : sortedMovies.filter(m => m.phase === activePhase);
 
-  // Find current index and next movie
   const currentIndex = sortedMovies.findIndex(m => m.id === numericCurrentId);
   const nextMovie = currentIndex >= 0 && currentIndex < sortedMovies.length - 1 
     ? sortedMovies[currentIndex + 1] 
@@ -160,7 +147,7 @@ export default function FranchiseTimeline({
 
   const scroll = (direction) => {
     if (scrollRef.current) {
-      const scrollAmount = direction === 'left' ? -420 : 420;
+      const scrollAmount = direction === 'left' ? -380 : 380;
       scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
@@ -172,56 +159,45 @@ export default function FranchiseTimeline({
   const titlePrefix = universe?.name || collectionData?.name || 'Franchise';
 
   return (
-    <div className={`relative w-full rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-b from-[#181818]/90 via-[#121212]/95 to-[#0a0a0a] shadow-2xl backdrop-blur-md ${mode === 'watch' ? 'my-8 p-4 md:p-6' : 'mb-12 p-5 md:p-8'}`}>
-      {/* Decorative ambient glow */}
-      <div 
-        className="absolute -top-24 left-1/4 w-96 h-96 rounded-full blur-[120px] pointer-events-none opacity-20"
-        style={{ backgroundColor: universe?.color || 'var(--accent-color, #E50914)' }}
-      />
-
-      {/* Header Bar */}
-      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
+    <div className={`relative w-full rounded-xl overflow-hidden border border-white/10 bg-[#14151b]/80 backdrop-blur-md shadow-xl ${mode === 'watch' ? 'my-6 p-4 md:p-6' : 'mb-10 p-5 md:p-6'}`}>
+      {/* Header Bar matching site style */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
         <div>
           <div className="flex items-center space-x-2">
-            <span 
-              className="text-[10px] uppercase font-black tracking-wider px-2.5 py-0.5 rounded-full text-white shadow-sm"
-              style={{ backgroundColor: universe?.color || 'var(--accent-color, #E50914)' }}
-            >
+            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25">
               {universe?.badge || 'Franchise Roadmap'}
             </span>
-            <span className="text-xs text-gray-400 font-medium flex items-center">
-              <Compass className="w-3.5 h-3.5 mr-1 text-[var(--accent-color)]" />
-              {sortedMovies.length} Chapter Journey
+            <span className="text-xs text-gray-400 font-medium">
+              {sortedMovies.length} Chapters
             </span>
           </div>
-          <h3 className="text-xl md:text-2xl font-black text-white font-display mt-1">
-            {titlePrefix}
+          <h3 className="text-xl md:text-2xl font-bold text-gray-100 font-display mt-1">
+            {titlePrefix} — Watch in Order
           </h3>
           {universe?.tagline && (
-            <p className="text-xs text-gray-400 italic mt-0.5 line-clamp-1">{universe.tagline}</p>
+            <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{universe.tagline}</p>
           )}
         </div>
 
-        {/* Order Mode & Controls */}
+        {/* Order Mode Toggle Pills */}
         <div className="flex items-center flex-wrap gap-2">
-          {/* Chronological vs Release toggle */}
-          <div className="bg-black/60 p-1 rounded-full border border-white/10 flex items-center shadow-inner">
+          <div className="bg-black/60 p-1 rounded-full border border-white/15 flex items-center">
             <button
               onClick={() => setOrderMode('chrono')}
-              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 flex items-center ${
+              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all flex items-center ${
                 orderMode === 'chrono' 
-                  ? 'bg-[var(--accent-color,#E50914)] text-white shadow-md' 
+                  ? 'bg-white text-black shadow-md font-bold' 
                   : 'text-gray-400 hover:text-white'
               }`}
             >
               <Clock className="w-3 h-3 mr-1" />
-              Story Chronology
+              Story Order
             </button>
             <button
               onClick={() => setOrderMode('release')}
-              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-300 flex items-center ${
+              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all flex items-center ${
                 orderMode === 'release' 
-                  ? 'bg-[var(--accent-color,#E50914)] text-white shadow-md' 
+                  ? 'bg-white text-black shadow-md font-bold' 
                   : 'text-gray-400 hover:text-white'
               }`}
             >
@@ -230,7 +206,6 @@ export default function FranchiseTimeline({
             </button>
           </div>
 
-          {/* Quick Scroll arrows */}
           <div className="hidden sm:flex items-center space-x-1">
             <button
               onClick={() => scroll('left')}
@@ -250,17 +225,17 @@ export default function FranchiseTimeline({
         </div>
       </div>
 
-      {/* Universe Phase Filter Pills (if multi-phase like MCU/Spider-Verse) */}
+      {/* Universe Phase Filters */}
       {universe?.phases && universe.phases.length > 2 && (
-        <div className="relative z-10 flex items-center space-x-2 overflow-x-auto scrollbar-hide py-3">
+        <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide py-3 border-b border-white/5">
           {universe.phases.map(p => (
             <button
               key={p.id}
               onClick={() => setActivePhase(p.id)}
-              className={`flex-none text-xs font-medium px-3 py-1 rounded-full transition-all duration-200 border ${
+              className={`flex-none text-xs font-semibold px-3 py-1 rounded-full transition-all border ${
                 activePhase === p.id
-                  ? 'bg-white text-black border-white font-bold shadow-md'
-                  : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'
+                  ? 'bg-white text-black border-white shadow-sm font-bold'
+                  : 'border-white/15 text-gray-300 hover:text-white hover:bg-white/10'
               }`}
             >
               {p.name}
@@ -269,161 +244,120 @@ export default function FranchiseTimeline({
         </div>
       )}
 
-      {/* Quick "Play Next in Universe" Banner when available */}
+      {/* Play Next In Timeline Banner */}
       {nextMovie && (
-        <div className="relative z-10 my-3 p-3 rounded-xl bg-gradient-to-r from-[var(--accent-color,#E50914)]/20 via-black/40 to-transparent border border-[var(--accent-color,#E50914)]/30 flex items-center justify-between">
+        <div className="my-3 p-3 rounded-lg bg-black/40 border border-white/10 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-full bg-[var(--accent-color,#E50914)] flex items-center justify-center text-white shadow-lg animate-pulse">
-              <Sparkles className="w-4 h-4 fill-white" />
+            <div className="w-7 h-7 rounded-full bg-[var(--accent-color,#2b82f6)] flex items-center justify-center text-white shadow-md">
+              <Play className="w-3 h-3 fill-white ml-0.5" />
             </div>
             <div>
-              <span className="text-[10px] text-gray-300 font-bold uppercase tracking-wider block">
-                Next In {orderMode === 'chrono' ? 'Timeline' : 'Release Order'}
+              <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block">
+                Next in {orderMode === 'chrono' ? 'Timeline' : 'Release Order'}
               </span>
-              <span className="text-sm font-bold text-white line-clamp-1">
+              <span className="text-xs md:text-sm font-bold text-white line-clamp-1">
                 {nextMovie.title} ({nextMovie.year})
               </span>
             </div>
           </div>
           <button
             onClick={() => navigate(mode === 'watch' ? `/watch/movie/${nextMovie.id}` : `/title/movie/${nextMovie.id}`)}
-            className="flex items-center px-4 py-1.5 rounded-full bg-[var(--accent-color,#E50914)] hover:brightness-110 text-white font-bold text-xs shadow-lg transition-transform active:scale-95 flex-none"
+            className="flex items-center px-4 py-1.5 rounded-full bg-white text-black hover:bg-white/90 font-bold text-xs shadow transition active:scale-95 flex-none"
           >
-            <Play className="w-3 h-3 mr-1.5 fill-white" />
+            <Play className="w-3 h-3 mr-1 fill-black" />
             {mode === 'watch' ? 'Play Next' : 'View Title'}
           </button>
         </div>
       )}
 
-      {/* Connected Horizontal Timeline Track */}
-      <div className="relative z-10 mt-4">
-        {/* Continuous Connecting Line */}
-        <div className="absolute top-1/2 left-4 right-4 h-0.5 bg-gradient-to-r from-white/10 via-[var(--accent-color,#E50914)]/30 to-white/10 -translate-y-12 pointer-events-none hidden md:block" />
+      {/* Horizontal Carousel */}
+      <div
+        ref={scrollRef}
+        className="flex space-x-3 md:space-x-4 overflow-x-auto scrollbar-hide py-3 px-1 snap-x scroll-smooth"
+      >
+        {filteredMovies.map((movie, index) => {
+          const isCurrent = movie.id === numericCurrentId;
+          const isWatched = watchedIds.has(movie.id);
+          const isUpcoming = movie.upcoming || new Date(movie.release_date || `${movie.year}-12-31`) > new Date();
+          const orderNum = orderMode === 'chrono' ? (movie.chronoOrder || index + 1) : (movie.releaseOrder || index + 1);
 
-        <div
-          ref={scrollRef}
-          className="flex space-x-4 md:space-x-6 overflow-x-auto scrollbar-hide py-4 px-2 snap-x"
-        >
-          {filteredMovies.map((movie, index) => {
-            const isCurrent = movie.id === numericCurrentId;
-            const isWatched = watchedIds.has(movie.id);
-            const isUpcoming = movie.upcoming || new Date(movie.release_date || `${movie.year}-12-31`) > new Date();
-            const orderNum = orderMode === 'chrono' ? (movie.chronoOrder || index + 1) : (movie.releaseOrder || index + 1);
-
-            return (
-              <div
-                key={movie.id}
-                ref={isCurrent ? currentCardRef : null}
-                className="flex-none flex flex-col items-center snap-center"
-              >
-                {/* Node Step Pin */}
-                <div className="mb-2 flex items-center justify-center">
-                  <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider transition-all duration-300 ${
-                    isCurrent 
-                      ? 'bg-[var(--accent-color,#E50914)] text-white shadow-[0_0_12px_rgba(229,9,20,0.8)] scale-110'
-                      : isWatched
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                      : isUpcoming
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                      : 'bg-white/10 text-gray-300 border border-white/10'
-                  }`}>
-                    {isCurrent ? '● CURRENT' : isWatched ? '✓ WATCHED' : isUpcoming ? 'SOON' : `#${orderNum}`}
-                  </div>
-                </div>
-
-                {/* Poster Card */}
-                <div
-                  onClick={() => {
-                    if (isUpcoming) {
-                      navigate(`/title/movie/${movie.id}`);
-                    } else if (mode === 'watch') {
-                      navigate(`/watch/movie/${movie.id}`);
-                    } else {
-                      navigate(`/title/movie/${movie.id}`);
-                    }
-                  }}
-                  className={`group relative w-32 sm:w-36 md:w-44 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all duration-300 border-2 ${
-                    isCurrent
-                      ? 'border-[var(--accent-color,#E50914)] shadow-[0_0_20px_rgba(229,9,20,0.6)] scale-105 z-20'
-                      : 'border-white/10 hover:border-white/50 hover:scale-105 z-10'
-                  } bg-[#1a1a1a]`}
-                >
-                  {movie.poster_path ? (
-                    <img
-                      src={`${IMAGE_BASE_URL_W500}${movie.poster_path}`}
-                      alt={movie.title}
-                      loading="lazy"
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-[#222]">
-                      <Compass className="w-8 h-8 text-gray-500 mb-2" />
-                      <span className="text-xs text-gray-300 font-bold line-clamp-3">{movie.title}</span>
-                    </div>
-                  )}
-
-                  {/* Gradient Overlay & Play Action on Hover */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-between p-2.5">
-                    <div className="flex justify-end">
-                      {movie.vote_average > 0 && (
-                        <span className="text-[10px] font-bold bg-black/70 px-1.5 py-0.5 rounded text-yellow-400 flex items-center">
-                          <Star className="w-2.5 h-2.5 fill-current mr-0.5" />
-                          {movie.vote_average.toFixed(1)}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col items-center justify-center my-auto">
-                      <div className="w-10 h-10 rounded-full bg-[var(--accent-color,#E50914)] flex items-center justify-center text-white shadow-xl transform scale-75 group-hover:scale-100 transition-transform">
-                        <Play className="w-4 h-4 fill-white ml-0.5" />
-                      </div>
-                      <span className="text-[10px] text-white font-bold mt-1 shadow-sm">
-                        {mode === 'watch' ? 'Switch Now' : 'Watch Title'}
-                      </span>
-                    </div>
-
-                    <p className="text-[11px] text-white font-semibold line-clamp-1 text-center">
-                      {movie.title}
-                    </p>
-                  </div>
-
-                  {/* Badges on card */}
-                  {isCurrent && (
-                    <div className="absolute top-2 left-2 bg-[var(--accent-color,#E50914)] text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-lg animate-pulse">
-                      Playing
-                    </div>
-                  )}
-                  {isWatched && !isCurrent && (
-                    <div className="absolute top-2 left-2 bg-emerald-600/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow flex items-center">
-                      <Check className="w-2.5 h-2.5 mr-0.5" /> Done
-                    </div>
-                  )}
-                  {isUpcoming && (
-                    <div className="absolute bottom-2 left-2 right-2 bg-amber-500/90 text-black text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded shadow text-center">
-                      {movie.releaseDate ? movie.releaseDate.substring(0, 4) : 'Upcoming'}
-                    </div>
-                  )}
-                </div>
-
-                {/* Subtitle / Year info below poster */}
-                <div className="w-32 sm:w-36 md:w-44 mt-2 text-center">
-                  <h4 className={`text-xs font-bold truncate ${isCurrent ? 'text-[var(--accent-color,#E50914)]' : 'text-gray-200 group-hover:text-white'}`}>
-                    {movie.title}
-                  </h4>
-                  <div className="flex items-center justify-center space-x-1 text-[11px] text-gray-400 mt-0.5">
-                    <span>{movie.year || (movie.release_date && movie.release_date.substring(0, 4)) || 'TBA'}</span>
-                    {movie.phase && (
-                      <>
-                        <span>•</span>
-                        <span className="text-[10px] uppercase text-gray-500">{movie.phase.replace('phase', 'P')}</span>
-                      </>
-                    )}
-                  </div>
-                </div>
+          return (
+            <div
+              key={movie.id}
+              ref={isCurrent ? currentCardRef : null}
+              className="flex-none flex flex-col items-center snap-center"
+            >
+              {/* Step indicator */}
+              <div className="mb-1.5">
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider ${
+                  isCurrent 
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : isWatched
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                    : isUpcoming
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'bg-white/10 text-gray-400 border border-white/10'
+                }`}>
+                  {isCurrent ? 'Playing' : isWatched ? '✓ Done' : isUpcoming ? 'Soon' : `#${orderNum}`}
+                </span>
               </div>
-            );
-          })}
-        </div>
+
+              {/* Card Poster */}
+              <div
+                onClick={() => {
+                  if (isUpcoming) {
+                    navigate(`/title/movie/${movie.id}`);
+                  } else if (mode === 'watch') {
+                    navigate(`/watch/movie/${movie.id}`);
+                  } else {
+                    navigate(`/title/movie/${movie.id}`);
+                  }
+                }}
+                className={`group relative w-28 sm:w-32 md:w-40 aspect-[2/3] rounded-lg overflow-hidden cursor-pointer transition-all duration-300 border-2 ${
+                  isCurrent
+                    ? 'border-blue-500 shadow-[0_0_15px_rgba(43,130,246,0.6)] scale-105 z-20'
+                    : 'border-white/10 hover:border-white/40 hover:scale-105 z-10'
+                } bg-[#181920]`}
+              >
+                {movie.poster_path ? (
+                  <img
+                    src={`${IMAGE_BASE_URL_W500}${movie.poster_path}`}
+                    alt={movie.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-[#202128]">
+                    <span className="text-[11px] text-gray-300 font-bold">{movie.title}</span>
+                  </div>
+                )}
+
+                {/* Hover Play Button */}
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-full bg-[var(--accent-color,#2b82f6)] flex items-center justify-center text-white shadow-xl">
+                    <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
+                  </div>
+                </div>
+
+                {isCurrent && (
+                  <div className="absolute top-1.5 left-1.5 bg-blue-600 text-white text-[8px] font-black uppercase px-1.5 py-0.5 rounded shadow">
+                    Active
+                  </div>
+                )}
+              </div>
+
+              {/* Card Meta */}
+              <div className="w-28 sm:w-32 md:w-40 mt-1.5 text-center">
+                <h4 className={`text-xs font-semibold truncate ${isCurrent ? 'text-blue-400' : 'text-gray-300 group-hover:text-white'}`}>
+                  {movie.title}
+                </h4>
+                <span className="text-[10px] text-gray-500">
+                  {movie.year || (movie.release_date && movie.release_date.substring(0, 4)) || 'TBA'}
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

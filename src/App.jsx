@@ -294,10 +294,10 @@ function Navbar({ onSearch, activeTab, setActiveTab, toggleMobileSearch, mobileS
 
           <button
             onClick={() => setShowRoulette(true)}
-            className="flex items-center px-4 py-2 rounded-full text-xs font-bold text-white bg-gradient-to-r from-red-600/30 via-purple-600/30 to-pink-600/30 border border-white/20 hover:border-white hover:brightness-125 transition-all shadow-md active:scale-95 mr-2 group cursor-pointer"
-            title="Movie Roulette (Surprise Me)"
+            className="flex items-center px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 border border-white/20 text-gray-300 hover:text-white hover:bg-white/10 mr-2 cursor-pointer"
+            title="Surprise Me (Movie Roulette)"
           >
-            <Dices className="w-4 h-4 mr-1.5 text-amber-400 group-hover:rotate-45 transition-transform" />
+            <Dices className="w-4 h-4 mr-2 text-white" />
             <span>Surprise Me</span>
           </button>
 
@@ -409,9 +409,9 @@ function Navbar({ onSearch, activeTab, setActiveTab, toggleMobileSearch, mobileS
             <Search className={`w-5 h-5 ${mobileSearchOpen ? 'text-white' : ''}`} />
             <span className="text-[10px] mt-0.5">Search</span>
          </div>
-         <div className="flex flex-col items-center cursor-pointer text-amber-400 hover:text-amber-300 transition" onClick={() => setShowRoulette(true)}>
+         <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-white transition" onClick={() => setShowRoulette(true)}>
             <Dices className="w-5 h-5" />
-            <span className="text-[10px] mt-0.5 font-bold">Surprise</span>
+            <span className="text-[10px] mt-0.5">Surprise</span>
          </div>
          <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-white transition" onClick={() => navigate('/live')}>
             <Radio className={`w-5 h-5 ${location.pathname === '/live' ? 'text-white' : ''}`} />
