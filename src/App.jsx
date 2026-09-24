@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Routes, Route, useNavigate, useParams, Link, useLocation, useSearchParams } from 'react-router-dom';
-import { Search, Bell, User, Info, X, ChevronLeft, ChevronRight, ChevronDown, Plus, ThumbsUp, Home as HomeIcon, Star, Film, Tv, Radio, Gamepad2, Calendar, Clock, Download, Heart, Bookmark, Share2 } from 'lucide-react';
+import { Search, Bell, User, Info, X, ChevronLeft, ChevronRight, ChevronDown, Plus, ThumbsUp, Home as HomeIcon, Star, Film, Tv, Radio, Gamepad2, Calendar, Clock, Download, Heart, Bookmark, Share2, Dices, Sparkles, Compass } from 'lucide-react';
 import { FaPlay as Play, FaPause as Pause, FaExpand as Maximize, FaVolumeHigh as Volume2, FaVolumeXmark as VolumeX, FaClosedCaptioning as Subtitles, FaGear as Settings, FaRotateRight as RotateCw, FaRotateLeft as RotateCcw, FaArrowLeft as ArrowLeft, FaHeadphones as Headphones, FaCheck as Check } from 'react-icons/fa6';
 import { FastAverageColor } from 'fast-average-color';
 import { motion, AnimatePresence, useScroll, useTransform, useMotionValue, useSpring } from 'framer-motion';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import Footer from './components/Footer';
 import NetflixIntro from './components/NetflixIntro';
+import FranchiseTimeline from './components/FranchiseTimeline';
+import UniverseHubs from './components/UniverseHubs';
+import UpcomingRadar from './components/UpcomingRadar';
+import MovieRoulette from './components/MovieRoulette';
 import { LazyLoadImage } from 'react-lazy-load-image-component';
 import 'react-lazy-load-image-component/src/effects/blur.css';
 
@@ -172,6 +176,7 @@ function Navbar({ onSearch, activeTab, setActiveTab, toggleMobileSearch, mobileS
   const [searchQuery, setSearchQuery] = useState(propSearchQuery !== undefined ? propSearchQuery : (searchParams.get('q') || ''));
   const [searchOpen, setSearchOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showRoulette, setShowRoulette] = useState(false);
   const [accentColor, setAccentColor] = useLocalStorage('netphlix_accent', '#E50914');
   const searchInputRef = useRef(null);
   const navigate = useNavigate();
@@ -287,6 +292,15 @@ function Navbar({ onSearch, activeTab, setActiveTab, toggleMobileSearch, mobileS
             ))}
           </div>
 
+          <button
+            onClick={() => setShowRoulette(true)}
+            className="flex items-center px-4 py-2 rounded-full text-xs font-bold text-white bg-gradient-to-r from-red-600/30 via-purple-600/30 to-pink-600/30 border border-white/20 hover:border-white hover:brightness-125 transition-all shadow-md active:scale-95 mr-2 group cursor-pointer"
+            title="Movie Roulette (Surprise Me)"
+          >
+            <Dices className="w-4 h-4 mr-1.5 text-amber-400 group-hover:rotate-45 transition-transform" />
+            <span>Surprise Me</span>
+          </button>
+
           <div className="flex items-center space-x-3 ml-2">
             <MagneticButton className="w-10 h-10 rounded-full border border-gray-600 bg-[#2a2a2a] flex items-center justify-center cursor-pointer hover:border-white transition-colors" onClick={() => navigate('/profile')}>
                <User className="w-5 h-5 text-gray-300 pointer-events-none" />
@@ -386,24 +400,31 @@ function Navbar({ onSearch, activeTab, setActiveTab, toggleMobileSearch, mobileS
       )}
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#141414]/80 backdrop-blur-xl border-t border-white/5 flex justify-around items-center py-3 z-50 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
+      <div className="md:hidden fixed bottom-0 left-0 w-full bg-[#141414]/90 backdrop-blur-xl border-t border-white/10 flex justify-around items-center py-2.5 z-50 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
          <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-white transition" onClick={() => handleTabClick('Home')}>
-            <HomeIcon className={`w-6 h-6 ${activeTab === 'Home' ? 'text-white' : ''}`} />
-            <span className="text-[10px] mt-1">Home</span>
+            <HomeIcon className={`w-5 h-5 ${activeTab === 'Home' ? 'text-white' : ''}`} />
+            <span className="text-[10px] mt-0.5">Home</span>
          </div>
          <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-white transition" onClick={toggleMobileSearch}>
-            <Search className={`w-6 h-6 ${mobileSearchOpen ? 'text-white' : ''}`} />
-            <span className="text-[10px] mt-1">Search</span>
+            <Search className={`w-5 h-5 ${mobileSearchOpen ? 'text-white' : ''}`} />
+            <span className="text-[10px] mt-0.5">Search</span>
+         </div>
+         <div className="flex flex-col items-center cursor-pointer text-amber-400 hover:text-amber-300 transition" onClick={() => setShowRoulette(true)}>
+            <Dices className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5 font-bold">Surprise</span>
          </div>
          <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-white transition" onClick={() => navigate('/live')}>
-            <Radio className={`w-6 h-6 ${location.pathname === '/live' ? 'text-white' : ''}`} />
-            <span className="text-[10px] mt-1">Live TV</span>
+            <Radio className={`w-5 h-5 ${location.pathname === '/live' ? 'text-white' : ''}`} />
+            <span className="text-[10px] mt-0.5">Live TV</span>
          </div>
          <div className="flex flex-col items-center cursor-pointer text-gray-400 hover:text-white transition" onClick={() => navigate('/profile')}>
-            <Plus className="w-6 h-6" />
-            <span className="text-[10px] mt-1">My List</span>
+            <Plus className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">My List</span>
          </div>
       </div>
+
+      {/* Movie Roulette Modal */}
+      <MovieRoulette isOpen={showRoulette} onClose={() => setShowRoulette(false)} />
     </>
   );
 }
@@ -682,9 +703,12 @@ const RowCard = React.memo(function RowCard({ movie, isLargeRow, isTop10, onNavi
         )}
 
         {/* Continue watching progress bar */}
-        {movie.progress && (
-           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-600 z-50">
-              <div className="h-full bg-netflix-red" style={{ width: `${movie.progress}%` }}></div>
+        {((movie.progressPercent && movie.progressPercent > 0) || (movie.progress && movie.progress > 0)) && (
+           <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/60 z-50 overflow-hidden">
+              <div 
+                className="h-full bg-[var(--accent-color,#e50914)] shadow-[0_0_8px_rgba(229,9,20,0.8)] transition-all duration-300" 
+                style={{ width: `${Math.min(100, Math.max(5, movie.progressPercent || movie.progress))}%` }}
+              ></div>
            </div>
         )}
       </div>
@@ -1190,6 +1214,12 @@ function Dashboard() {
               {activeTab === 'Home' && myList.length > 0 && (
                 <Row title="My List" moviesArray={myList} onRemove={removeFromList} />
               )}
+
+              {/* Cinematic Universes Hubs */}
+              {activeTab === 'Home' && <UniverseHubs />}
+
+              {/* Upcoming Blockbusters Countdown Radar */}
+              {activeTab === 'Home' && <UpcomingRadar />}
 
               {activeTab === 'TV Shows' ? (
                 <>
@@ -1756,28 +1786,13 @@ function TitlePage() {
               </div>
             )}
 
-            {details.belongs_to_collection && collectionMovies.length > 0 && (
-              <div className="mb-12">
-                <h3 className="text-lg font-bold mb-6 text-white font-display">The {details.belongs_to_collection.name} - Watch in Order</h3>
-                <div className="flex space-x-4 overflow-x-auto scrollbar-hide pb-4">
-                  {collectionMovies.map(movie => (
-                    <div 
-                      key={movie.id} 
-                      className={`flex-none w-32 md:w-40 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer relative group border-2 ${movie.id === parseInt(id) ? 'border-netflix-red shadow-[0_0_15px_rgba(229,9,20,0.5)] scale-105 z-10' : 'border-transparent hover:border-white/30'}`}
-                      onClick={() => navigate(`/title/movie/${movie.id}`)}
-                    >
-                      <img src={`${IMAGE_BASE_URL_W500}${movie.poster_path}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={movie.title} />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Play className="w-8 h-8 text-white fill-current shadow-lg" />
-                      </div>
-                      {movie.id === parseInt(id) && (
-                        <div className="absolute top-2 left-2 bg-netflix-red text-[10px] font-bold px-2 py-0.5 rounded shadow-md">YOU ARE HERE</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Franchise & Cinematic Universe Timeline */}
+            <FranchiseTimeline 
+              currentMovieId={id} 
+              collectionData={details.belongs_to_collection ? { ...details.belongs_to_collection, parts: collectionMovies } : null}
+              movieTitle={details.title || details.name}
+              mode="title"
+            />
 
             {similar?.length > 0 && (
               <div className="mb-12">
@@ -2835,6 +2850,18 @@ function WatchPage() {
            </div>
          )}
       </div>
+
+      {/* Franchise & Cinematic Universe Timeline */}
+      {details && (
+        <div className="relative z-20 max-w-[1800px] mx-auto px-4 md:px-8 mb-8">
+          <FranchiseTimeline 
+            currentMovieId={id} 
+            collectionData={details.belongs_to_collection ? details.belongs_to_collection : null}
+            movieTitle={details.title || details.name}
+            mode="watch"
+          />
+        </div>
+      )}
 
       {/* More Like This (Similar Titles) Section */}
       {details.similar?.results?.length > 0 && (
