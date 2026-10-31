@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Play, Check, ChevronRight, ChevronLeft, Calendar, Star, Compass, Clock, Sparkles } from 'lucide-react';
+import { Play, ChevronRight, ChevronLeft, Calendar, Clock } from 'lucide-react';
 import { findUniverseByMovieId, findUniverseByName } from '../data/universesData';
 
 const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
@@ -14,7 +14,7 @@ export default function FranchiseTimeline({
   currentMovieId,
   collectionData = null,
   movieTitle = '',
-  mode = 'title' // 'title' or 'watch'
+  mode = 'title', // 'title' or 'watch'
 }) {
   const navigate = useNavigate();
   const scrollRef = useRef(null);
@@ -29,7 +29,7 @@ export default function FranchiseTimeline({
   const [watchedIds] = useState(() => {
     try {
       const history = JSON.parse(localStorage.getItem('netphlix_watchHistory') || '[]');
-      return new Set(history.map(m => m.id));
+      return new Set(history.map((m) => m.id));
     } catch {
       return new Set();
     }
@@ -66,18 +66,26 @@ export default function FranchiseTimeline({
               if (res.ok) {
                 const data = await res.json();
                 if (data.adult) return null;
+                let cleanPoster = item.poster_path || data.poster_path;
+                if (data.poster_path === '/pzIddUEMWhWzfvLI3TwxUG2wGoi.jpg') {
+                  cleanPoster = '/mFzFJc1XnGqaEbyac2KcCFJx8Uo.jpg';
+                } else if (data.poster_path === '/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg') {
+                  cleanPoster = '/1brq8q3u1GmS5Sef2FkNwImrHWT.jpg';
+                }
                 const movieMeta = {
-                  poster_path: data.poster_path,
-                  backdrop_path: data.backdrop_path,
+                  poster_path: cleanPoster,
+                  backdrop_path: item.backdrop_path || data.backdrop_path,
                   overview: data.overview,
                   vote_average: data.vote_average,
                   release_date: data.release_date || item.releaseDate,
-                  runtime: data.runtime
+                  runtime: data.runtime,
                 };
                 detailsCache.set(item.id, movieMeta);
                 return { ...item, ...movieMeta };
               }
-            } catch (err) {}
+            } catch {
+              // ignore
+            }
             return item;
           })
         );
@@ -97,7 +105,7 @@ export default function FranchiseTimeline({
           poster_path: part.poster_path,
           backdrop_path: part.backdrop_path,
           vote_average: part.vote_average,
-          overview: part.overview
+          overview: part.overview,
         }));
 
         if (!isCancelled) {
@@ -113,20 +121,37 @@ export default function FranchiseTimeline({
     }
 
     loadMovies();
-    return () => { isCancelled = true; };
+    return () => {
+      isCancelled = true;
+    };
   }, [universe, collectionData]);
 
+  // Center active card horizontally inside timeline track without scrolling the window
   useEffect(() => {
     if (!loading && currentCardRef.current && scrollRef.current) {
-      setTimeout(() => {
-        currentCardRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          inline: 'center',
-          block: 'nearest'
-        });
-      }, 250);
+      const container = scrollRef.current;
+      const card = currentCardRef.current;
+      const targetScroll = card.offsetLeft - container.clientWidth / 2 + card.clientWidth / 2;
+      container.scrollTo({
+        left: Math.max(0, targetScroll),
+        behavior: 'smooth',
+      });
     }
   }, [loading, orderMode, activePhase]);
+
+  // Horizontal mouse wheel scroll support
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY * 1.5;
+      }
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [loading]);
 
   const sortedMovies = [...movieDetailsList].sort((a, b) => {
     if (orderMode === 'chrono') {
@@ -137,14 +162,14 @@ export default function FranchiseTimeline({
     return new Date(dateA) - new Date(dateB);
   });
 
-  const filteredMovies = activePhase === 'all' 
-    ? sortedMovies 
-    : sortedMovies.filter(m => m.phase === activePhase);
+  const filteredMovies =
+    activePhase === 'all' ? sortedMovies : sortedMovies.filter((m) => m.phase === activePhase);
 
-  const currentIndex = sortedMovies.findIndex(m => m.id === numericCurrentId);
-  const nextMovie = currentIndex >= 0 && currentIndex < sortedMovies.length - 1 
-    ? sortedMovies[currentIndex + 1] 
-    : null;
+  const currentIndex = sortedMovies.findIndex((m) => m.id === numericCurrentId);
+  const nextMovie =
+    currentIndex >= 0 && currentIndex < sortedMovies.length - 1
+      ? sortedMovies[currentIndex + 1]
+      : null;
 
   const scroll = (direction) => {
     if (scrollRef.current) {
@@ -160,100 +185,126 @@ export default function FranchiseTimeline({
   const titlePrefix = universe?.name || collectionData?.name || 'Franchise';
 
   return (
-    <div className={`relative w-full rounded-xl overflow-hidden border border-white/10 bg-[#14151b]/80 backdrop-blur-md shadow-xl ${mode === 'watch' ? 'my-6 p-4 md:p-6' : 'mb-10 p-5 md:p-6'}`}>
-      {/* Header Bar matching site style */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
+    <div
+      className={`relative w-full rounded-2xl md:rounded-3xl overflow-hidden apple-glass select-none ${
+        mode === 'watch' ? 'my-6 p-4 md:p-6' : 'mb-10 p-5 md:p-6'
+      }`}
+    >
+      {/* Header Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
         <div>
-          <div className="flex items-center space-x-2">
-            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25">
+          <div className="flex items-center space-x-2 mb-1">
+            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full frost-pill text-white/80">
               {universe?.badge || 'Franchise Roadmap'}
             </span>
-            <span className="text-xs text-gray-400 font-medium">
+            <span className="text-xs text-[#8a8a93] font-medium">
               {sortedMovies.length} Chapters
             </span>
           </div>
-          <h3 className="text-xl md:text-2xl font-bold text-gray-100 font-display mt-1">
-            {titlePrefix} — Watch in Order
+          <h3 className="text-lg md:text-xl font-bold text-white font-display">
+            {titlePrefix} — Watch Order
           </h3>
           {universe?.tagline && (
-            <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{universe.tagline}</p>
+            <p className="text-xs text-[#8a8a93] mt-0.5 line-clamp-1">{universe.tagline}</p>
           )}
         </div>
 
-        {/* Order Mode Toggle Pills */}
+        {/* Order Mode Toggle (White Lozenge Active Style with Genjutsu Glide) */}
         <div className="flex items-center flex-wrap gap-2">
-          <div className="bg-black/60 p-1 rounded-full border border-white/15 flex items-center">
+          <div className="frost-pill p-1 rounded-full flex items-center space-x-1 relative">
             <button
               onClick={() => setOrderMode('chrono')}
-              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all flex items-center ${
-                orderMode === 'chrono' 
-                  ? 'bg-white text-black shadow-md font-bold' 
-                  : 'text-gray-400 hover:text-white'
+              className={`relative px-3 py-1 text-xs font-semibold rounded-full transition-colors flex items-center z-10 ${
+                orderMode === 'chrono' ? 'text-[#0f1014] font-bold' : 'text-white/60 hover:text-white'
               }`}
             >
+              {orderMode === 'chrono' && (
+                <motion.div
+                  layoutId="timelineOrderLozenge"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  className="absolute inset-0 bg-white rounded-full -z-10 shadow-sm"
+                />
+              )}
               <Clock className="w-3 h-3 mr-1" />
-              Story Order
+              <span>Story Order</span>
             </button>
             <button
               onClick={() => setOrderMode('release')}
-              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all flex items-center ${
-                orderMode === 'release' 
-                  ? 'bg-white text-black shadow-md font-bold' 
-                  : 'text-gray-400 hover:text-white'
+              className={`relative px-3 py-1 text-xs font-semibold rounded-full transition-colors flex items-center z-10 ${
+                orderMode === 'release' ? 'text-[#0f1014] font-bold' : 'text-white/60 hover:text-white'
               }`}
             >
+              {orderMode === 'release' && (
+                <motion.div
+                  layoutId="timelineOrderLozenge"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  className="absolute inset-0 bg-white rounded-full -z-10 shadow-sm"
+                />
+              )}
               <Calendar className="w-3 h-3 mr-1" />
-              Release Order
+              <span>Release Order</span>
             </button>
           </div>
 
           <div className="hidden sm:flex items-center space-x-1">
-            <button
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.05 }}
               onClick={() => scroll('left')}
-              className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 flex items-center justify-center text-white transition hover:scale-105 active:scale-95"
+              className="w-8 h-8 rounded-full frost-pill flex items-center justify-center text-white/80 hover:text-white transition-colors"
               aria-label="Scroll left"
             >
               <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.05 }}
               onClick={() => scroll('right')}
-              className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 flex items-center justify-center text-white transition hover:scale-105 active:scale-95"
+              className="w-8 h-8 rounded-full frost-pill flex items-center justify-center text-white/80 hover:text-white transition-colors"
               aria-label="Scroll right"
             >
               <ChevronRight className="w-4 h-4" />
-            </button>
+            </motion.button>
           </div>
         </div>
       </div>
 
-      {/* Universe Phase Filters */}
+      {/* Universe Phase Filters with Smooth Lozenge Glide */}
       {universe?.phases && universe.phases.length > 2 && (
-        <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide py-3 border-b border-white/5">
-          {universe.phases.map(p => (
-            <button
-              key={p.id}
-              onClick={() => setActivePhase(p.id)}
-              className={`flex-none text-xs font-semibold px-3 py-1 rounded-full transition-all border ${
-                activePhase === p.id
-                  ? 'bg-white text-black border-white shadow-sm font-bold'
-                  : 'border-white/15 text-gray-300 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              {p.name}
-            </button>
-          ))}
+        <div className="flex items-center space-x-1.5 overflow-x-auto scrollbar-hide py-2.5 border-b border-white/[0.06]">
+          {universe.phases.map((p) => {
+            const isActive = activePhase === p.id;
+            return (
+              <button
+                key={p.id}
+                onClick={() => setActivePhase(p.id)}
+                className={`relative flex-none text-xs font-semibold px-3 py-1 rounded-full transition-colors z-10 ${
+                  isActive ? 'text-[#0f1014] font-bold' : 'frost-pill text-white/60 hover:text-white'
+                }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="timelinePhaseLozenge"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    className="absolute inset-0 bg-white rounded-full -z-10 shadow-sm"
+                  />
+                )}
+                <span>{p.name}</span>
+              </button>
+            );
+          })}
         </div>
       )}
 
       {/* Play Next In Timeline Banner */}
       {nextMovie && (
-        <div className="my-3 p-3 rounded-lg bg-black/40 border border-white/10 flex items-center justify-between">
+        <div className="my-3.5 p-3 rounded-xl frost-panel flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-7 h-7 rounded-full bg-[var(--accent-color,#2b82f6)] flex items-center justify-center text-white shadow-md">
-              <Play className="w-3 h-3 fill-white ml-0.5" />
+            <div className="w-7 h-7 rounded-full bg-white text-[#0f1014] flex items-center justify-center shadow-sm">
+              <Play className="w-3 h-3 fill-current ml-0.5" />
             </div>
             <div>
-              <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block">
+              <span className="text-[10px] text-[#8a8a93] font-semibold uppercase tracking-wider block">
                 Next in {orderMode === 'chrono' ? 'Timeline' : 'Release Order'}
               </span>
               <span className="text-xs md:text-sm font-bold text-white line-clamp-1">
@@ -262,103 +313,138 @@ export default function FranchiseTimeline({
             </div>
           </div>
           <button
-            onClick={() => navigate(mode === 'watch' ? `/watch/movie/${nextMovie.id}` : `/title/movie/${nextMovie.id}`)}
-            className="flex items-center px-4 py-1.5 rounded-full bg-white text-black hover:bg-white/90 font-bold text-xs shadow transition active:scale-95 flex-none"
+            onClick={() => {
+              window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+              navigate(
+                mode === 'watch'
+                  ? `/watch/movie/${nextMovie.id}`
+                  : `/title/movie/${nextMovie.id}`
+              );
+            }}
+            className="flex items-center px-4 py-1.5 rounded-full bg-white text-[#0f1014] hover:opacity-90 font-bold text-xs shadow-sm transition active:scale-95 flex-none"
           >
-            <Play className="w-3 h-3 mr-1 fill-black" />
+            <Play className="w-3 h-3 mr-1 fill-current" />
             {mode === 'watch' ? 'Play Next' : 'View Title'}
           </button>
         </div>
       )}
 
-      {/* Horizontal Carousel */}
-      <div
-        ref={scrollRef}
-        className="flex space-x-3 md:space-x-4 overflow-x-auto scrollbar-hide py-3 px-1 snap-x scroll-smooth"
-      >
-        {filteredMovies.map((movie, index) => {
-          const isCurrent = movie.id === numericCurrentId;
-          const isWatched = watchedIds.has(movie.id);
-          const isUpcoming = movie.upcoming || new Date(movie.release_date || `${movie.year}-12-31`) > new Date();
-          const orderNum = orderMode === 'chrono' ? (movie.chronoOrder || index + 1) : (movie.releaseOrder || index + 1);
+      {/* Horizontal Carousel Track with Chevrons */}
+      <div className="relative group/timeline mt-2">
+        {/* Left Scroll Chevron */}
+        <button
+          onClick={() => scroll('left')}
+          className="absolute left-1 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full apple-glass-pill text-white/80 hover:text-white flex items-center justify-center opacity-0 group-hover/timeline:opacity-100 transition-opacity hover:bg-white/20 shadow-md"
+          aria-label="Scroll left"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
 
-          return (
-            <div
-              key={movie.id}
-              ref={isCurrent ? currentCardRef : null}
-              className="flex-none flex flex-col items-center snap-center"
-            >
-              {/* Step indicator */}
-              <div className="mb-1.5">
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider ${
-                  isCurrent 
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : isWatched
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                    : isUpcoming
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                    : 'bg-white/10 text-gray-400 border border-white/10'
-                }`}>
-                  {isCurrent ? 'Playing' : isWatched ? '✓ Done' : isUpcoming ? 'Soon' : `#${orderNum}`}
-                </span>
-              </div>
+        <div
+          ref={scrollRef}
+          className="flex space-x-3 overflow-x-auto scrollbar-hide py-3 px-1 snap-x scroll-smooth"
+        >
+          {filteredMovies.map((movie, index) => {
+            const isCurrent = movie.id === numericCurrentId;
+            const isWatched = watchedIds.has(movie.id);
+            const isUpcoming =
+              movie.upcoming ||
+              new Date(movie.release_date || `${movie.year}-12-31`) > new Date();
+            const orderNum =
+              orderMode === 'chrono'
+                ? movie.chronoOrder || index + 1
+                : movie.releaseOrder || index + 1;
 
-              {/* Card Poster */}
+            return (
               <div
-                onClick={() => {
-                  if (isUpcoming) {
-                    navigate(`/title/movie/${movie.id}`);
-                  } else if (mode === 'watch') {
-                    navigate(`/watch/movie/${movie.id}`);
-                  } else {
-                    navigate(`/title/movie/${movie.id}`);
-                  }
-                }}
-                className={`group relative w-28 sm:w-32 md:w-40 aspect-[2/3] rounded-lg overflow-hidden cursor-pointer transition-all duration-300 border-2 ${
-                  isCurrent
-                    ? 'border-blue-500 shadow-[0_0_15px_rgba(43,130,246,0.6)] scale-105 z-20'
-                    : 'border-white/10 hover:border-white/40 hover:scale-105 z-10'
-                } bg-[#181920]`}
+                key={movie.id}
+                ref={isCurrent ? currentCardRef : null}
+                className="flex-none flex flex-col items-center snap-center"
               >
-                {movie.poster_path ? (
-                  <img
-                    src={`${IMAGE_BASE_URL_W500}${movie.poster_path}`}
-                    alt={movie.title}
-                    loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-[#202128]">
-                    <span className="text-[11px] text-gray-300 font-bold">{movie.title}</span>
-                  </div>
-                )}
+                {/* Node Pill */}
+                <div className="mb-1.5">
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider ${
+                      isCurrent
+                        ? 'bg-white text-[#0f1014] shadow-sm font-bold'
+                        : isWatched
+                        ? 'apple-glass-pill text-white/90'
+                        : isUpcoming
+                        ? 'apple-glass-pill text-[#ffb800]'
+                        : 'apple-glass-pill text-[#8a8a93]'
+                    }`}
+                  >
+                    {isCurrent ? 'Now Playing' : isWatched ? '✓ Done' : isUpcoming ? 'Soon' : `#${orderNum}`}
+                  </span>
+                </div>
 
-                {/* Hover Play Button */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <div className="w-9 h-9 rounded-full bg-[var(--accent-color,#2b82f6)] flex items-center justify-center text-white shadow-xl">
-                    <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
+                {/* Card Poster with 1px Hairline for Active Node */}
+                <div
+                  onClick={() => {
+                    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                    if (isUpcoming) {
+                      navigate(`/title/movie/${movie.id}`);
+                    } else if (mode === 'watch') {
+                      navigate(`/watch/movie/${movie.id}`);
+                    } else {
+                      navigate(`/title/movie/${movie.id}`);
+                    }
+                  }}
+                  className={`group relative w-28 sm:w-32 md:w-36 aspect-[2/3] rounded-xl overflow-hidden cursor-pointer transition-all duration-200 ${
+                    isCurrent
+                      ? 'ring-2 ring-white shadow-xl scale-105 z-20'
+                      : 'border border-white/[0.08] hover:border-white/30 z-10'
+                  } bg-[#14151b]`}
+                >
+                  {movie.poster_path ? (
+                    <img
+                      src={`${IMAGE_BASE_URL_W500}${movie.poster_path}`}
+                      alt={movie.title}
+                      loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center bg-[#181a22]">
+                      <span className="text-[11px] text-white/70 font-bold">{movie.title}</span>
+                    </div>
+                  )}
+
+                  {/* Hover Play Button */}
+                  <div className="absolute inset-0 bg-[#0f1014]/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-full bg-white text-[#0f1014] flex items-center justify-center shadow-lg">
+                      <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                    </div>
                   </div>
                 </div>
 
-                {isCurrent && (
-                  <div className="absolute top-1.5 left-1.5 bg-blue-600 text-white text-[8px] font-black uppercase px-1.5 py-0.5 rounded shadow">
-                    Active
-                  </div>
-                )}
+                {/* Card Meta */}
+                <div className="w-28 sm:w-32 md:w-36 mt-1.5 text-center">
+                  <h4
+                    className={`text-xs font-semibold truncate ${
+                      isCurrent ? 'text-white' : 'text-white/80 group-hover:text-white'
+                    }`}
+                  >
+                    {movie.title}
+                  </h4>
+                  <span className="text-[10px] text-[#8a8a93]">
+                    {movie.year ||
+                      (movie.release_date && movie.release_date.substring(0, 4)) ||
+                      'TBA'}
+                  </span>
+                </div>
               </div>
+            );
+          })}
+        </div>
 
-              {/* Card Meta */}
-              <div className="w-28 sm:w-32 md:w-40 mt-1.5 text-center">
-                <h4 className={`text-xs font-semibold truncate ${isCurrent ? 'text-blue-400' : 'text-gray-300 group-hover:text-white'}`}>
-                  {movie.title}
-                </h4>
-                <span className="text-[10px] text-gray-500">
-                  {movie.year || (movie.release_date && movie.release_date.substring(0, 4)) || 'TBA'}
-                </span>
-              </div>
-            </div>
-          );
-        })}
+        {/* Right Scroll Chevron */}
+        <button
+          onClick={() => scroll('right')}
+          className="absolute right-1 top-1/2 -translate-y-1/2 z-30 w-8 h-8 rounded-full frost-pill text-white/80 hover:text-white flex items-center justify-center opacity-0 group-hover/timeline:opacity-100 transition-opacity hover:bg-white/20 shadow-md"
+          aria-label="Scroll right"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );

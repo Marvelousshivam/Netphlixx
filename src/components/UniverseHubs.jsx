@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, X, Star, Calendar, Clock, Film, Sparkles, ChevronRight, Check } from 'lucide-react';
+import { Play, X, Star, Calendar, Clock, Film, Check } from 'lucide-react';
 import { UNIVERSES } from '../data/universesData';
 
 const BASE_URL = 'https://api.themoviedb.org/3';
@@ -23,7 +23,7 @@ export default function UniverseHubs() {
   const [watchedIds] = useState(() => {
     try {
       const history = JSON.parse(localStorage.getItem('netphlix_watchHistory') || '[]');
-      return new Set(history.map(m => m.id));
+      return new Set(history.map((m) => m.id));
     } catch {
       return new Set();
     }
@@ -64,18 +64,26 @@ export default function UniverseHubs() {
             if (res.ok) {
               const data = await res.json();
               if (data.adult) return null;
+              let cleanPoster = item.poster_path || data.poster_path;
+              if (data.poster_path === '/pzIddUEMWhWzfvLI3TwxUG2wGoi.jpg') {
+                cleanPoster = '/mFzFJc1XnGqaEbyac2KcCFJx8Uo.jpg';
+              } else if (data.poster_path === '/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg') {
+                cleanPoster = '/1brq8q3u1GmS5Sef2FkNwImrHWT.jpg';
+              }
               const meta = {
-                poster_path: data.poster_path,
-                backdrop_path: data.backdrop_path,
+                poster_path: cleanPoster,
+                backdrop_path: item.backdrop_path || data.backdrop_path,
                 overview: data.overview,
                 vote_average: data.vote_average,
                 release_date: data.release_date || item.releaseDate,
-                runtime: data.runtime
+                runtime: data.runtime,
               };
               detailsCache.set(item.id, meta);
               return { ...item, ...meta };
             }
-          } catch (e) {}
+          } catch {
+            // ignore
+          }
           return item;
         })
       );
@@ -87,7 +95,9 @@ export default function UniverseHubs() {
     }
 
     loadUniverseMovies();
-    return () => { isCancelled = true; };
+    return () => {
+      isCancelled = true;
+    };
   }, [selectedUniverse]);
 
   const sortedMovies = [...enrichedMovies].sort((a, b) => {
@@ -99,67 +109,51 @@ export default function UniverseHubs() {
     return new Date(dateA) - new Date(dateB);
   });
 
-  const filteredMovies = activePhase === 'all'
-    ? sortedMovies
-    : sortedMovies.filter(m => m.phase === activePhase);
+  const filteredMovies =
+    activePhase === 'all' ? sortedMovies : sortedMovies.filter((m) => m.phase === activePhase);
 
-  // First movie for Marathon button
   const firstMovie = sortedMovies.length > 0 ? sortedMovies[0] : null;
 
   return (
-    <div className="pl-4 md:pl-12 pr-4 md:pr-12 my-6 md:my-8 group relative z-20">
-      {/* Section Header aligned with site design system */}
-      <div className="flex items-center justify-between mb-4 md:mb-6 pr-4 md:pr-12 group/title">
-        <div className="flex items-center">
-          <Sparkles className="w-5 h-5 md:w-6 md:h-6 mr-3 text-white" />
-          <h2 className="text-gray-100 text-xl md:text-3xl font-display font-bold tracking-tight">
-            Cinematic Universes
-          </h2>
-          <span className="hidden sm:inline-block ml-3 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/25">
-            Watch in Order
-          </span>
-        </div>
-        <span className="text-xs text-gray-400 font-medium">Click to explore timelines</span>
+    <div className="pl-4 md:pl-12 pr-4 md:pr-12 my-6 md:my-8 group relative z-20 select-none">
+      {/* Rail Heading (Outfit 600) */}
+      <div className="flex items-center justify-between mb-3.5 pr-4 md:pr-12">
+        <h2 className="text-base md:text-lg font-semibold font-display tracking-tight text-white">
+          Cinematic Universes
+        </h2>
+        <span className="text-xs text-[#8a8a93] font-medium hidden sm:inline">Explore timelines & watch orders</span>
       </div>
 
-      {/* Universe Hub Brand Tiles - Disney+ / Netflix Studio style */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+      {/* Universe Hub Brand Tiles - Disney+ / Apple TV+ Studio Tile Architecture */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {UNIVERSES.map((universe) => (
           <motion.div
             key={universe.id}
-            whileHover={{ scale: 1.05, y: -3 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ y: -5, scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 22 }}
             onClick={() => setSelectedUniverse(universe)}
-            className="group relative aspect-[16/9] md:aspect-[2/1] rounded-xl overflow-hidden cursor-pointer border border-white/10 bg-[#16171d] shadow-lg hover:border-white/40 transition-all duration-300"
+            className="group relative aspect-[16/10] rounded-xl overflow-hidden cursor-pointer frost-panel hover:border-white/40 hover:ring-1 hover:ring-white/20 hover:shadow-[0_20px_45px_rgba(0,0,0,0.85)] transition-all shadow-md"
           >
-            {/* Background image & gradient overlay */}
+            {/* Background banner */}
             <img
               src={universe.banner}
               alt={universe.name}
-              className="absolute inset-0 w-full h-full object-cover opacity-35 group-hover:opacity-65 group-hover:scale-110 transition-all duration-500 filter brightness-90 group-hover:brightness-100"
+              className="absolute inset-0 w-full h-full object-cover opacity-25 group-hover:opacity-45 group-hover:scale-105 transition-all duration-500 filter brightness-90"
             />
-            <div className={`absolute inset-0 bg-gradient-to-t ${universe.gradient} opacity-50 group-hover:opacity-30 transition-opacity`} />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/85" />
+            {/* Vignette overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0f1014] via-[#0f1014]/60 to-transparent" />
 
-            {/* Glowing Accent Border on hover */}
-            <div
-              className="absolute inset-0 border-2 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-              style={{ borderColor: universe.color }}
-            />
-
-            {/* Brand content */}
-            <div className="relative z-10 h-full flex flex-col justify-between p-3">
-              <span
-                className="self-start text-[9px] uppercase font-black px-2 py-0.5 rounded-full text-white shadow-sm"
-                style={{ backgroundColor: universe.color }}
-              >
+            {/* Content stack */}
+            <div className="relative z-10 h-full flex flex-col justify-between p-3.5">
+              <span className="self-start text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full frost-pill text-white/80">
                 {universe.badge}
               </span>
               <div>
-                <h3 className="text-white font-bold text-sm md:text-base leading-tight font-display drop-shadow-md group-hover:translate-x-0.5 transition-transform">
+                <h3 className="text-white font-bold text-sm leading-tight font-display drop-shadow">
                   {universe.shortName}
                 </h3>
-                <span className="text-[10px] text-gray-300 font-medium">
+                <span className="text-[11px] text-[#8a8a93] font-medium">
                   {universe.movies.length} Films
                 </span>
               </div>
@@ -168,207 +162,256 @@ export default function UniverseHubs() {
         ))}
       </div>
 
-      {/* Universe Explorer Modal using createPortal to escape any stacking context */}
-      {typeof document !== 'undefined' && createPortal(
-        <AnimatePresence>
-          {selectedUniverse && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-xl overflow-hidden">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 15 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 15 }}
-                transition={{ duration: 0.25, ease: "easeOut" }}
-                className="relative w-full h-full max-w-6xl max-h-[92vh] mx-3 sm:mx-6 bg-[#0f1014] border border-white/15 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
-              >
-                {/* Close Button */}
-                <button
-                  onClick={() => setSelectedUniverse(null)}
-                  className="absolute top-4 right-4 z-40 w-10 h-10 rounded-full bg-black/70 hover:bg-white text-white hover:text-black border border-white/20 flex items-center justify-center transition-all hover:scale-105"
-                  aria-label="Close"
+      {/* Universe Explorer Modal */}
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {selectedUniverse && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-xl p-3 sm:p-6 overflow-hidden">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.96, y: 8, filter: 'blur(4px)' }}
+                  animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                  exit={{ opacity: 0, scale: 0.96, y: 8, filter: 'blur(4px)' }}
+                  transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+                  className="relative w-full h-full max-w-6xl max-h-[90vh] frost-panel rounded-2xl overflow-hidden shadow-2xl flex flex-col border border-white/10"
                 >
-                  <X className="w-5 h-5" />
-                </button>
+                  {/* Close Button */}
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    whileHover={{ scale: 1.08 }}
+                    onClick={() => setSelectedUniverse(null)}
+                    className="absolute top-4 right-4 z-40 w-9 h-9 rounded-full frost-pill text-white/80 hover:text-white hover:bg-white/20 flex items-center justify-center transition-colors"
+                    aria-label="Close"
+                  >
+                    <X className="w-4 h-4" />
+                  </motion.button>
 
-                {/* Modal Hero Banner */}
-                <div className="relative h-60 sm:h-72 w-full flex-none overflow-hidden">
-                  <img
-                    src={selectedUniverse.banner}
-                    alt={selectedUniverse.name}
-                    className="w-full h-full object-cover filter brightness-70"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0f1014] via-[#0f1014]/50 to-transparent" />
-                  <div
-                    className="absolute inset-0 opacity-35 mix-blend-overlay pointer-events-none"
-                    style={{ backgroundColor: selectedUniverse.color }}
-                  />
+                  {/* Modal Hero Banner - Compact & Cinematic */}
+                  <div className="relative h-36 sm:h-44 w-full flex-none overflow-hidden">
+                    <img
+                      src={selectedUniverse.banner}
+                      alt={selectedUniverse.name}
+                      className="w-full h-full object-cover filter brightness-[0.75]"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0f1014] via-[#0f1014]/60 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#0f1014]/80 via-transparent to-transparent" />
 
-                  <div className="absolute bottom-6 left-6 sm:left-8 right-6 z-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-                    <div className="max-w-2xl">
-                      <span
-                        className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full text-white shadow-sm inline-block mb-2"
-                        style={{ backgroundColor: selectedUniverse.color }}
-                      >
-                        {selectedUniverse.badge}
-                      </span>
-                      <h2 className="text-2xl sm:text-4xl font-bold text-white font-display tracking-tight drop-shadow-lg">
-                        {selectedUniverse.name}
-                      </h2>
-                      <p className="text-gray-300 text-xs sm:text-sm mt-1 line-clamp-2 max-w-xl">
-                        {selectedUniverse.description}
-                      </p>
+                    <div className="absolute bottom-4 left-6 sm:left-8 right-6 z-10 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                      <div className="max-w-xl">
+                        <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full frost-pill text-white/90 inline-block mb-1.5">
+                          {selectedUniverse.badge}
+                        </span>
+                        <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white font-display tracking-tight drop-shadow leading-tight">
+                          {selectedUniverse.name}
+                        </h2>
+                        <p className="text-white/70 text-xs mt-0.5 line-clamp-1 max-w-lg hidden sm:block">
+                          {selectedUniverse.description}
+                        </p>
+                      </div>
+
+                      {firstMovie && (
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
+                          whileHover={{ scale: 1.03 }}
+                          onClick={() => {
+                            setSelectedUniverse(null);
+                            navigate(`/watch/movie/${firstMovie.id}`);
+                          }}
+                          className="flex-none flex items-center px-4 py-2 rounded-full bg-white text-[#0f1014] font-bold text-xs sm:text-sm shadow-md transition-all hover:opacity-90 active:scale-95"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-[#0f1014] mr-1.5" />
+                          <span>Start Marathon (#1)</span>
+                        </motion.button>
+                      )}
                     </div>
-
-                    {firstMovie && (
-                      <button
-                        onClick={() => {
-                          setSelectedUniverse(null);
-                          navigate(`/watch/movie/${firstMovie.id}`);
-                        }}
-                        className="flex-none flex items-center px-6 py-2.5 rounded-full bg-white text-black hover:bg-white/90 font-bold text-sm shadow-xl transition hover:scale-105 active:scale-95"
-                      >
-                        <Play className="w-4 h-4 fill-black mr-2" />
-                        Start Marathon (#1)
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Controls & Phase Filter Bar matching site button design */}
-                <div className="bg-[#14151a] border-y border-white/10 px-6 py-3 flex flex-wrap items-center justify-between gap-3 flex-none">
-                  {/* Phase Filter Pills */}
-                  <div className="flex items-center space-x-2 overflow-x-auto scrollbar-hide py-1">
-                    {selectedUniverse.phases.map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => setActivePhase(p.id)}
-                        className={`text-xs font-semibold px-4 py-1.5 rounded-full transition-all border flex-none ${
-                          activePhase === p.id
-                            ? 'bg-white text-black border-white shadow-md font-bold'
-                            : 'border-white/20 text-gray-300 hover:text-white hover:bg-white/10'
-                        }`}
-                      >
-                        {p.name}
-                      </button>
-                    ))}
                   </div>
 
-                  {/* Chronological vs Release Toggle */}
-                  <div className="bg-black/60 p-1 rounded-full border border-white/15 flex items-center">
-                    <button
-                      onClick={() => setOrderMode('chrono')}
-                      className={`px-3 py-1 text-xs font-semibold rounded-full transition-all flex items-center ${
-                        orderMode === 'chrono'
-                          ? 'bg-[var(--accent-color,#2b82f6)] text-white shadow'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                    >
-                      <Clock className="w-3 h-3 mr-1" />
-                      Story Chronology
-                    </button>
-                    <button
-                      onClick={() => setOrderMode('release')}
-                      className={`px-3 py-1 text-xs font-semibold rounded-full transition-all flex items-center ${
-                        orderMode === 'release'
-                          ? 'bg-[var(--accent-color,#2b82f6)] text-white shadow'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                    >
-                      <Calendar className="w-3 h-3 mr-1" />
-                      Release Order
-                    </button>
-                  </div>
-                </div>
-
-                {/* Movies Grid using standard RowCard style */}
-                <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
-                  {loadingMovies ? (
-                    <div className="flex items-center justify-center py-24 text-gray-400">
-                      <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin mr-3" />
-                      Loading franchise timeline...
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                      {filteredMovies.map((movie, index) => {
-                        const isWatched = watchedIds.has(movie.id);
-                        const isUpcoming = movie.upcoming || new Date(movie.release_date || `${movie.year}-12-31`) > new Date();
-                        const orderNum = orderMode === 'chrono' ? (movie.chronoOrder || index + 1) : (movie.releaseOrder || index + 1);
-
+                  {/* Controls & Phase Filter Bar */}
+                  <div className="bg-[#12141a]/95 border-y border-white/[0.08] px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 flex-none">
+                    {/* Phase Filter Pills with Genjutsu Glide */}
+                    <div className="flex items-center space-x-1.5 overflow-x-auto scrollbar-hide py-1">
+                      {selectedUniverse.phases.map((p) => {
+                        const isActive = activePhase === p.id;
                         return (
-                          <div
-                            key={movie.id}
-                            onClick={() => {
-                              setSelectedUniverse(null);
-                              navigate(isUpcoming ? `/title/movie/${movie.id}` : `/watch/movie/${movie.id}`);
-                            }}
-                            className="group relative cursor-pointer flex flex-col rounded-lg overflow-hidden bg-[#181920] border border-white/10 hover:border-[var(--accent-color,#2b82f6)] transition-all duration-300 hover:scale-105 shadow-lg"
+                          <button
+                            key={p.id}
+                            onClick={() => setActivePhase(p.id)}
+                            className={`relative text-xs font-semibold px-3 py-1 rounded-full transition-colors flex-none z-10 ${
+                              isActive
+                                ? 'text-[#0f1014] font-bold'
+                                : 'text-white/60 hover:text-white hover:bg-white/10'
+                            }`}
                           >
-                            {/* Sequence number badge */}
-                            <div className="absolute top-2 left-2 z-20 bg-black/80 backdrop-blur-sm border border-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow">
-                              #{orderNum}
-                            </div>
-
-                            {isWatched && (
-                              <div className="absolute top-2 right-2 z-20 bg-emerald-600/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow flex items-center">
-                                <Check className="w-2.5 h-2.5 mr-0.5" /> Done
-                              </div>
+                            {isActive && (
+                              <motion.div
+                                layoutId="hubPhaseLozenge"
+                                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                                className="absolute inset-0 bg-white rounded-full -z-10 shadow-sm"
+                              />
                             )}
-
-                            <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#202128]">
-                              {movie.poster_path ? (
-                                <img
-                                  src={`${IMAGE_BASE_URL_W500}${movie.poster_path}`}
-                                  alt={movie.title}
-                                  loading="lazy"
-                                  className="w-full h-full object-cover group-hover:scale-110 transition duration-500"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center">
-                                  <Film className="w-8 h-8 text-gray-500 mb-2" />
-                                  <span className="text-xs text-gray-300 font-bold">{movie.title}</span>
-                                </div>
-                              )}
-
-                              {/* Play overlay on hover */}
-                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <div className="w-10 h-10 rounded-full bg-[var(--accent-color,#2b82f6)] text-white flex items-center justify-center shadow-xl">
-                                  <Play className="w-4 h-4 fill-white ml-0.5" />
-                                </div>
-                              </div>
-
-                              {isUpcoming && (
-                                <div className="absolute bottom-0 left-0 right-0 bg-blue-600 text-white text-[9px] font-bold uppercase tracking-wider py-0.5 text-center">
-                                  {movie.releaseDate ? movie.releaseDate.substring(0, 4) : 'Upcoming'}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Card text */}
-                            <div className="p-2.5 flex flex-col justify-between flex-1">
-                              <h4 className="text-xs font-semibold text-gray-200 line-clamp-1 group-hover:text-white transition-colors">
-                                {movie.title}
-                              </h4>
-                              <div className="flex items-center justify-between text-[11px] text-gray-400 mt-1">
-                                <span>{movie.year || (movie.release_date && movie.release_date.substring(0, 4)) || 'TBA'}</span>
-                                {movie.vote_average > 0 && (
-                                  <span className="text-yellow-400 font-medium flex items-center">
-                                    <Star className="w-2.5 h-2.5 fill-current mr-0.5" />
-                                    {movie.vote_average.toFixed(1)}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                            <span>{p.name}</span>
+                          </button>
                         );
                       })}
                     </div>
-                  )}
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+
+                    {/* Story Chronology vs Release Order Toggle (White Lozenge Active Style with Genjutsu Glide) */}
+                    <div className="frost-pill p-1 rounded-full flex items-center space-x-1 relative">
+                      <button
+                        onClick={() => setOrderMode('chrono')}
+                        className={`relative px-3 py-1 text-xs font-semibold rounded-full transition-colors flex items-center z-10 ${
+                          orderMode === 'chrono'
+                            ? 'text-[#0f1014] font-bold'
+                            : 'text-white/60 hover:text-white'
+                        }`}
+                      >
+                        {orderMode === 'chrono' && (
+                          <motion.div
+                            layoutId="hubOrderLozenge"
+                            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                            className="absolute inset-0 bg-white rounded-full -z-10 shadow-sm"
+                          />
+                        )}
+                        <Clock className="w-3 h-3 mr-1" />
+                        <span>Story Order</span>
+                      </button>
+                      <button
+                        onClick={() => setOrderMode('release')}
+                        className={`relative px-3 py-1 text-xs font-semibold rounded-full transition-colors flex items-center z-10 ${
+                          orderMode === 'release'
+                            ? 'text-[#0f1014] font-bold'
+                            : 'text-white/60 hover:text-white'
+                        }`}
+                      >
+                        {orderMode === 'release' && (
+                          <motion.div
+                            layoutId="hubOrderLozenge"
+                            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                            className="absolute inset-0 bg-white rounded-full -z-10 shadow-sm"
+                          />
+                        )}
+                        <Calendar className="w-3 h-3 mr-1" />
+                        <span>Release Order</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Movies Grid */}
+                  <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 scrollbar-hide">
+                    {loadingMovies ? (
+                      <div className="flex items-center justify-center py-20 text-[#8a8a93] text-sm">
+                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin mr-3" />
+                        Loading universe timeline...
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+                        {filteredMovies.map((movie, index) => {
+                          const isWatched = watchedIds.has(movie.id);
+                          const isUpcoming =
+                            movie.upcoming ||
+                            new Date(movie.release_date || `${movie.year}-12-31`) > new Date();
+                          const orderNum =
+                            orderMode === 'chrono'
+                              ? movie.chronoOrder || index + 1
+                              : movie.releaseOrder || index + 1;
+
+                          return (
+                            <motion.div
+                              key={movie.id}
+                              whileHover={{ y: -6, scale: 1.035 }}
+                              whileTap={{ scale: 0.97 }}
+                              transition={{ type: 'spring', stiffness: 320, damping: 22 }}
+                              onClick={() => {
+                                setSelectedUniverse(null);
+                                navigate(
+                                  isUpcoming
+                                    ? `/title/movie/${movie.id}`
+                                    : `/watch/movie/${movie.id}`
+                                );
+                              }}
+                              className="group relative cursor-pointer flex flex-col rounded-xl overflow-hidden bg-[#14151b] border border-white/[0.08] hover:border-white/30 hover:ring-1 hover:ring-white/20 hover:shadow-[0_20px_45px_rgba(0,0,0,0.85)] transition-all shadow-md"
+                            >
+                              {/* Sequence number / status badge */}
+                              <div className="absolute top-2 left-2 z-20">
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold shadow-sm ${
+                                    isUpcoming
+                                      ? 'frost-pill text-[#ffb800] border-white/20'
+                                      : 'frost-pill text-white'
+                                  }`}
+                                >
+                                  {isUpcoming ? 'Soon' : `#${orderNum}`}
+                                </span>
+                              </div>
+
+                              {isWatched && (
+                                <div className="absolute top-2 right-2 z-20 bg-white text-[#0f1014] text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm flex items-center">
+                                  <Check className="w-2.5 h-2.5 mr-0.5" /> Done
+                                </div>
+                              )}
+
+                              <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#181a22]">
+                                {movie.poster_path ? (
+                                  <img
+                                    src={`${IMAGE_BASE_URL_W500}${movie.poster_path}`}
+                                    alt={movie.title}
+                                    loading="lazy"
+                                    className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex flex-col items-center justify-center p-3 text-center bg-[#14151b]">
+                                    <Film className="w-6 h-6 text-white/40 mb-2" />
+                                    <span className="text-xs text-white/80 font-bold leading-tight line-clamp-3">
+                                      {movie.title}
+                                    </span>
+                                    {movie.year && (
+                                      <span className="text-[10px] text-[#8a8a93] mt-1 font-semibold">
+                                        {movie.year}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Hover Play Overlay */}
+                                <div className="absolute inset-0 bg-[#0f1014]/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <div className="w-9 h-9 rounded-full bg-white text-[#0f1014] flex items-center justify-center shadow-lg">
+                                    <Play className="w-4 h-4 fill-current ml-0.5" />
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Card Text */}
+                              <div className="p-2.5 flex flex-col justify-between flex-1 bg-[#14151b]">
+                                <h4 className="text-xs font-semibold text-white/90 line-clamp-1 group-hover:text-white transition-colors">
+                                  {movie.title}
+                                </h4>
+                                <div className="flex items-center justify-between text-[11px] text-[#8a8a93] mt-1 font-medium">
+                                  <span>
+                                    {movie.year ||
+                                      (movie.release_date &&
+                                        movie.release_date.substring(0, 4)) ||
+                                      'TBA'}
+                                  </span>
+                                  {movie.vote_average > 0 && (
+                                    <span className="text-white/80 font-medium flex items-center">
+                                      <Star className="w-2.5 h-2.5 fill-[#ffb800] text-[#ffb800] mr-1" />
+                                      {movie.vote_average.toFixed(1)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
     </div>
   );
 }

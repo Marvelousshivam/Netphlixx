@@ -1,4 +1,3 @@
-import React from 'react';
 import './NetflixIntro.css';
 
 export default function NetflixIntro() {

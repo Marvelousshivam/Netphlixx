@@ -33,3 +33,8 @@ dist-ssr
 *.avi
 *.mov
 *.webm
+
+# Agents & local experimental directories
+.agents
+PiratesTv/
+standalone android/

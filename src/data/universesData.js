@@ -65,14 +65,14 @@ export const UNIVERSES = [
       { id: 447365, title: 'Guardians of the Galaxy Vol. 3', year: 2023, chronoOrder: 32, releaseOrder: 32, phase: 'phase5' },
       { id: 609681, title: 'The Marvels', year: 2023, chronoOrder: 33, releaseOrder: 33, phase: 'phase5' },
       { id: 533535, title: 'Deadpool & Wolverine', year: 2024, chronoOrder: 34, releaseOrder: 34, phase: 'phase5' },
-      { id: 823464, title: 'Captain America: Brave New World', year: 2025, chronoOrder: 35, releaseOrder: 35, phase: 'phase5' },
-      { id: 986056, title: 'Thunderbolts*', year: 2025, chronoOrder: 36, releaseOrder: 36, phase: 'phase5' },
+      { id: 822119, title: 'Captain America: Brave New World', year: 2025, chronoOrder: 35, releaseOrder: 35, phase: 'phase5', upcoming: true, releaseDate: '2025-02-14', poster_path: '/mFzFJc1XnGqaEbyac2KcCFJx8Uo.jpg' },
+      { id: 986056, title: 'Thunderbolts*', year: 2025, chronoOrder: 36, releaseOrder: 36, phase: 'phase5', upcoming: true, releaseDate: '2025-05-02', poster_path: '/hqcexYHbiTBfDIdDWxrxPtVndBX.jpg' },
 
       // Phase 6 & Upcoming
-      { id: 617127, title: 'The Fantastic Four: First Steps', year: 2025, chronoOrder: 37, releaseOrder: 37, phase: 'phase6', upcoming: true, releaseDate: '2025-07-25' },
-      { id: 1003596, title: 'Avengers: Doomsday', year: 2026, chronoOrder: 38, releaseOrder: 38, phase: 'phase6', upcoming: true, releaseDate: '2026-05-01' },
-      { id: 1159311, title: 'Spider-Man 4', year: 2026, chronoOrder: 39, releaseOrder: 39, phase: 'phase6', upcoming: true, releaseDate: '2026-07-24' },
-      { id: 1003598, title: 'Avengers: Secret Wars', year: 2027, chronoOrder: 40, releaseOrder: 40, phase: 'phase6', upcoming: true, releaseDate: '2027-05-07' }
+      { id: 617126, title: 'The Fantastic Four: First Steps', year: 2025, chronoOrder: 37, releaseOrder: 37, phase: 'phase6', upcoming: true, releaseDate: '2025-07-25', poster_path: '/nf5qaSEvyYSNeFH0YhSs5EsBLX9.jpg' },
+      { id: 1003596, title: 'Avengers: Doomsday', year: 2026, chronoOrder: 38, releaseOrder: 38, phase: 'phase6', upcoming: true, releaseDate: '2026-05-01', poster_path: '/7UN7WiNgXnKNneFx7V4nDm92luk.jpg' },
+      { id: 969681, title: 'Spider-Man: Brand New Day', year: 2026, chronoOrder: 39, releaseOrder: 39, phase: 'phase6', upcoming: true, releaseDate: '2026-07-24', poster_path: '/1brq8q3u1GmS5Sef2FkNwImrHWT.jpg' },
+      { id: 1003598, title: 'Avengers: Secret Wars', year: 2027, chronoOrder: 40, releaseOrder: 40, phase: 'phase6', upcoming: true, releaseDate: '2027-05-07', poster_path: '/f0YBuh4hyiAheXhh4JnJWoKi9g5.jpg' }
     ]
   },
 
@@ -108,12 +108,12 @@ export const UNIVERSES = [
       { id: 315635, title: 'Spider-Man: Homecoming', year: 2017, chronoOrder: 6, releaseOrder: 6, phase: 'mcu-spidey' },
       { id: 429617, title: 'Spider-Man: Far From Home', year: 2019, chronoOrder: 7, releaseOrder: 8, phase: 'mcu-spidey' },
       { id: 634649, title: 'Spider-Man: No Way Home', year: 2021, chronoOrder: 8, releaseOrder: 10, phase: 'mcu-spidey' },
-      { id: 1159311, title: 'Spider-Man 4', year: 2026, chronoOrder: 9, releaseOrder: 16, phase: 'mcu-spidey', upcoming: true, releaseDate: '2026-07-24' },
+      { id: 969681, title: 'Spider-Man: Brand New Day', year: 2026, chronoOrder: 9, releaseOrder: 16, phase: 'mcu-spidey', upcoming: true, releaseDate: '2026-07-24', poster_path: '/1brq8q3u1GmS5Sef2FkNwImrHWT.jpg' },
 
       // Animated
       { id: 324857, title: 'Spider-Man: Into the Spider-Verse', year: 2018, chronoOrder: 10, releaseOrder: 7, phase: 'animated' },
       { id: 569094, title: 'Spider-Man: Across the Spider-Verse', year: 2023, chronoOrder: 11, releaseOrder: 12, phase: 'animated' },
-      { id: 856289, title: 'Spider-Man: Beyond the Spider-Verse', year: 2026, chronoOrder: 12, releaseOrder: 17, phase: 'animated', upcoming: true },
+      { id: 911916, title: 'Spider-Man: Beyond the Spider-Verse', year: 2026, chronoOrder: 12, releaseOrder: 17, phase: 'animated', upcoming: true },
 
       // Sony Villains
       { id: 335983, title: 'Venom', year: 2018, chronoOrder: 13, releaseOrder: 9, phase: 'ssu' },
@@ -121,7 +121,7 @@ export const UNIVERSES = [
       { id: 526896, title: 'Morbius', year: 2022, chronoOrder: 15, releaseOrder: 13, phase: 'ssu' },
       { id: 634492, title: 'Madame Web', year: 2024, chronoOrder: 16, releaseOrder: 14, phase: 'ssu' },
       { id: 912649, title: 'Venom: The Last Dance', year: 2024, chronoOrder: 17, releaseOrder: 15, phase: 'ssu' },
-      { id: 791042, title: 'Kraven the Hunter', year: 2024, chronoOrder: 18, releaseOrder: 18, phase: 'ssu' }
+      { id: 539972, title: 'Kraven the Hunter', year: 2024, chronoOrder: 18, releaseOrder: 18, phase: 'ssu' }
     ]
   },
 

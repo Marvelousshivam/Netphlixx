@@ -9,6 +9,9 @@ export default {
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
         display: ['Outfit', 'sans-serif'],
+        serif: ['Cinzel', 'serif'],
+        doto: ['Doto', 'monospace', 'sans-serif'],
+        mono: ['Space Mono', 'monospace'],
       },
       colors: {
         netflix: {
